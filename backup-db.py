@@ -18,6 +18,17 @@ DB_PATH = r"F:\zelzal prog-AI\Telegram-Bot\zelzal.db"
 BACKUP_DIR = r"F:\zelzal prog-AI\Telegram-Bot\backups"
 KEEP_DAYS = 30
 
+# Code files to backup alongside DB
+CODE_FILES = [
+    r"F:\zelzal prog-AI\Telegram-Bot\bot.js",
+    r"F:\zelzal prog-AI\Telegram-Bot\database.js",
+    r"F:\zelzal prog-AI\Telegram-Bot\config.json",
+    r"F:\zelzal prog-AI\Telegram-Bot\products.json",
+    r"F:\zelzal prog-AI\Telegram-Bot\auto-executor.js",
+    r"F:\zelzal prog-AI\Telegram-Bot\remote-server.js",
+    r"F:\zelzal prog-AI\Telegram-Bot\subscription-manager.js",
+]
+
 def backup_database():
     """Create compressed backup of SQLite database"""
     try:
@@ -53,6 +64,16 @@ def backup_database():
         size_mb = backup_path.stat().st_size / (1024 * 1024)
         print(f"[BACKUP] Completed: {backup_name} ({size_mb:.2f} MB)")
         
+        # Backup code files
+        code_backup_dir = backup_dir / "code"
+        code_backup_dir.mkdir(parents=True, exist_ok=True)
+        for src_path in CODE_FILES:
+            src = Path(src_path)
+            if src.exists():
+                dest = code_backup_dir / f"{src.stem}_{timestamp}{src.suffix}"
+                shutil.copy2(src, dest)
+                print(f"[BACKUP] Code: {src.name} -> {dest.name}")
+        
         return True
         
     except Exception as e:
@@ -81,8 +102,22 @@ def cleanup_old_backups():
             except:
                 pass
         
+        # Clean old code backups
+        code_dir = backup_dir / "code"
+        if code_dir.exists():
+            for f in code_dir.glob("*_*.*"):
+                try:
+                    parts = f.stem.rsplit("_", 1)
+                    if len(parts) == 2:
+                        ft = datetime.strptime(parts[1], "%Y%m%d_%H%M%S")
+                        if ft < cutoff:
+                            f.unlink()
+                            removed += 1
+                except:
+                    pass
+        
         if removed:
-            print(f"[CLEANUP] Removed {removed} old backups")
+            print(f"[CLEANUP] Removed {removed} old items")
         
     except Exception as e:
         print(f"[CLEANUP] Error: {e}")
