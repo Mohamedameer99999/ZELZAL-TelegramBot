@@ -1,26 +1,27 @@
 {
-  "bot_token": "YOUR_BOT_TOKEN_HERE",
-  "admin_ids": [123456789],
-  "hmac_secret": "your-hmac-secret",
-  "dashboard_url": "https://your-site.pythonanywhere.com",
-  "whatsapp": "https://wa.me/201234567890",
-  "payment_phone": "01234567890",
-  "website": "https://your-site.github.io",
-  "channel": "@YourChannel",
-  "bot_username": "YourBot",
+  "_comment": "انسخ هذا الملف إلى config.json واملأ القيم الحقيقية. في Railway، استخدم Environment Variables بدلاً من هذا الملف.",
+  "bot_token": "8980473162:TU_TOKEN_HUNA",
+  "admin_ids": [1231848867],
+  "hmac_secret": "Z3lzYWxTZWN1cml0eTIwMjU=",
+  "dashboard_url": "",
+  "whatsapp": "https://wa.me/201034085168",
+  "payment_phone": "01034085168",
+  "website": "https://mohamedameer99999.github.io/zelzal-security/",
+  "channel": "@ZELZAL_Security",
+  "bot_username": "ZELZAL_Security_Bot",
   "translate_news": true,
-  "openai_api_key": "sk-...",
+  "openai_api_key": "",
   "openai_model": "gpt-4o",
-  "gemini_api_key": "AI...",
+  "gemini_api_key": "",
   "gemini_model": "gemini-2.0-flash",
-  "groq_api_key": "gsk_...",
+  "groq_api_key": "",
   "groq_model": "llama-3.3-70b-versatile",
   "smtp": {
     "host": "smtp.sendgrid.net",
     "port": 587,
     "user": "apikey",
-    "pass": "SG....",
-    "from": "Name <email@example.com>"
+    "pass": "",
+    "from": "ZELZAL Security <zelzalcybershield@gmail.com>"
   },
   "subscription": {
     "reminder_days": [7, 3, 1],
@@ -30,7 +31,7 @@
   },
   "webhook": {
     "port": 3457,
-    "secret": "your-webhook-secret",
+    "secret": "zelzal-webhook-secret-2026",
     "allowed_ips": ["127.0.0.1", "::1"]
   },
   "affiliate": {

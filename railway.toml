@@ -1,0 +1,13 @@
+[build]
+  builder = "nixpacks"
+  buildCommand = "npm install"
+
+[deploy]
+  startCommand = "node start.js"
+  numReplicas = 1
+  healthcheckPath = "/api/ping"
+  healthcheckTimeout = 30
+
+[volumes]
+  [volumes.data]
+    mountPath = "/data"
