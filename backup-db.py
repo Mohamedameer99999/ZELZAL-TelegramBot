@@ -129,77 +129,41 @@ def cleanup_old_backups():
         print(f"[CLEANUP] Error: {e}")
 
 def upload_to_drive(timestamp):
-    """Upload backup files to Google Drive (optional)"""
-    key_path = Path(DRIVE_KEY_PATH)
-    if not key_path.exists():
-        print("[DRIVE] No key file found — skipping Drive upload")
-        print(f"[DRIVE] Create a service account key at {DRIVE_KEY_PATH} to enable")
+    """Upload backup files to Google Drive via rclone"""
+    rclone = shutil.which("rclone") or str(Path(__file__).parent / "rclone.exe")
+    if not os.path.exists(rclone):
+        print("[DRIVE] rclone not found — skipping Drive upload")
+        print("[DRIVE] Run setup-google-drive.bat first to configure")
         return False
-    
-    try:
-        import json
-        from google.oauth2 import service_account
-        from googleapiclient.discovery import build
-        from googleapiclient.http import MediaFileUpload
-        
-        SCOPES = ['https://www.googleapis.com/auth/drive.file']
-        creds = service_account.Credentials.from_service_account_file(str(key_path), scopes=SCOPES)
-        service = build('drive', 'v3', credentials=creds)
-        
-        # Find or create backup folder
-        folder_id = None
-        results = service.files().list(
-            q=f"name='{DRIVE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false",
-            spaces='drive', fields='files(id, name)'
-        ).execute()
-        folders = results.get('files', [])
-        if folders:
-            folder_id = folders[0]['id']
-            print(f"[DRIVE] Found folder: {DRIVE_FOLDER_NAME} ({folder_id})")
-        else:
-            file_metadata = {'name': DRIVE_FOLDER_NAME, 'mimeType': 'application/vnd.google-apps.folder'}
-            folder = service.files().create(body=file_metadata, fields='id').execute()
-            folder_id = folder['id']
-            print(f"[DRIVE] Created folder: {DRIVE_FOLDER_NAME} ({folder_id})")
-        
-        # Upload DB backup
-        db_gz = Path(BACKUP_DIR) / f"zelzal_{timestamp}.db.gz"
-        if db_gz.exists():
-            media = MediaFileUpload(str(db_gz), mimetype='application/gzip', resumable=True)
-            file_meta = {'name': db_gz.name, 'parents': [folder_id]}
-            service.files().create(body=file_meta, media_body=media, fields='id').execute()
+
+    remote = "ZELZAL_Backup:ZELZAL_Backups"
+    db_gz = Path(BACKUP_DIR) / f"zelzal_{timestamp}.db.gz"
+    code_dir = Path(BACKUP_DIR) / "code"
+    uploaded = 0
+
+    if db_gz.exists():
+        r = os.system(f'"{rclone}" copy "{db_gz}" "{remote}/" 2>nul')
+        if r == 0:
             print(f"[DRIVE] Uploaded: {db_gz.name}")
-        
-        # Upload code backups
-        code_dir = Path(BACKUP_DIR) / "code"
-        if code_dir.exists():
-            for f in sorted(code_dir.glob(f"*_{timestamp}.*")):
-                media = MediaFileUpload(str(f), resumable=True)
-                file_meta = {'name': f.name, 'parents': [folder_id]}
-                service.files().create(body=file_meta, media_body=media, fields='id').execute()
+            uploaded += 1
+        else:
+            print(f"[DRIVE] Upload failed for {db_gz.name} (check rclone config)")
+
+    if code_dir.exists():
+        for f in sorted(code_dir.glob(f"*_{timestamp}.*")):
+            r = os.system(f'"{rclone}" copy "{f}" "{remote}/" 2>nul')
+            if r == 0:
                 print(f"[DRIVE] Uploaded: {f.name}")
-        
-        # Delete old backups (keep last 30)
-        cutoff = datetime.now() - timedelta(days=KEEP_DAYS)
-        results = service.files().list(
-            q=f"'{folder_id}' in parents and trashed=false",
-            spaces='drive', fields='files(id, name, createdTime)'
-        ).execute()
-        for f in results.get('files', []):
-            try:
-                ft = datetime.fromisoformat(f['createdTime'].replace('Z', '+00:00'))
-                if ft < cutoff.replace(tzinfo=ft.tzinfo):
-                    service.files().delete(fileId=f['id']).execute()
-                    print(f"[DRIVE] Deleted old: {f['name']}")
-            except:
-                pass
-        
-        print("[DRIVE] Upload complete")
+                uploaded += 1
+
+    if uploaded:
+        print(f"[DRIVE] Uploaded {uploaded} file(s)")
+        # Clean old backups (keep last 30)
+        cutoff = (datetime.now() - timedelta(days=KEEP_DAYS)).strftime("%Y-%m-%d")
+        os.system(f'"{rclone}" delete --min-age {KEEP_DAYS}d "{remote}" 2>nul')
         return True
-    
-    except Exception as e:
-        print(f"[DRIVE] Error: {e}")
-        return False
+    print("[DRIVE] No files uploaded")
+    return False
 
 def upload_to_telegram(timestamp):
     """Send backup files to admin via Telegram bot"""
