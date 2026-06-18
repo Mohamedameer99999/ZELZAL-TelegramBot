@@ -39,7 +39,10 @@ async function checkExpiring() {
     const now = new Date();
 
     for (const sub of subscriptions) {
+      if (!sub.current_period_end) continue;
       const endDate = new Date(sub.current_period_end);
+      if (isNaN(endDate.getTime())) continue;
+      
       const daysLeft = Math.ceil((endDate - now) / 86400000);
 
       if (daysLeft <= 0) continue;

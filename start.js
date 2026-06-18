@@ -2,6 +2,28 @@
 
 const { fork } = require('child_process');
 const path = require('path');
+const fs = require('fs');
+
+const LOCK_FILE = path.join(__dirname, '.bot.lock');
+
+// Check for existing lock
+if (fs.existsSync(LOCK_FILE)) {
+  const existingPid = fs.readFileSync(LOCK_FILE, 'utf8').trim();
+  try {
+    process.kill(parseInt(existingPid), 0);
+    console.log(`[LOCK] Another bot instance running (PID: ${existingPid}). Exiting.`);
+    process.exit(1);
+  } catch {
+    // Stale lock, remove it
+    fs.unlinkSync(LOCK_FILE);
+  }
+}
+
+// Write our PID to lock file
+fs.writeFileSync(LOCK_FILE, process.pid.toString());
+
+const { fork } = require('child_process');
+const path = require('path');
 
 const services = [
   { name: 'bot', file: 'bot.js' },
@@ -11,6 +33,12 @@ const services = [
 
 const children = {};
 let shuttingDown = false;
+
+function cleanup() {
+  if (fs.existsSync(LOCK_FILE)) {
+    try { fs.unlinkSync(LOCK_FILE); } catch {}
+  }
+}
 
 services.forEach(s => {
   const child = fork(path.join(__dirname, s.file), [], { stdio: 'pipe' });
@@ -40,6 +68,7 @@ process.on('SIGTERM', () => {
   shuttingDown = true;
   console.log('Shutting down all services...');
   Object.values(children).forEach(c => c.kill('SIGTERM'));
+  cleanup();
   setTimeout(() => process.exit(0), 3000);
 });
 
@@ -47,5 +76,13 @@ process.on('SIGINT', () => {
   shuttingDown = true;
   console.log('Shutting down all services...');
   Object.values(children).forEach(c => c.kill('SIGTERM'));
+  cleanup();
   setTimeout(() => process.exit(0), 3000);
+});
+
+process.on('exit', cleanup);
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+  cleanup();
+  process.exit(1);
 });
