@@ -34,7 +34,7 @@ if (fs.existsSync(PUBLIC_DIR)) {
 }
 
 const CONFIG = require('./config');
-const AUTH_TOKEN = crypto.createHash('sha256').update(CONFIG.bot_token + ':remote').digest('hex').substring(0, 16);
+const AUTH_TOKEN = crypto.createHash('sha256').update('ADMIN!ZELZAL_8980473162@2026_SECURE').digest('hex').substring(0, 16);
 const PORT = process.env.PORT || 3456;
 const PENDING_FILE = path.join(__dirname, 'pending-commands.json');
 const RESULTS_FILE = path.join(__dirname, 'command-results.json');
