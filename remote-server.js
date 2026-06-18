@@ -18,7 +18,20 @@ app.use((req, res, next) => {
 const SITE_DIR = path.join(__dirname, '..', 'ZELZAL-ISO-Build');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 if (fs.existsSync(SITE_DIR)) app.use(express.static(SITE_DIR));
-if (fs.existsSync(PUBLIC_DIR)) app.use('/app', express.static(PUBLIC_DIR));
+if (fs.existsSync(PUBLIC_DIR)) {
+  app.use('/app', express.static(PUBLIC_DIR));
+  // Serve index.html from public directory at root
+  if (fs.existsSync(path.join(PUBLIC_DIR, 'index.html'))) {
+    app.get('/', (req, res) => {
+      res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+    });
+  } else {
+    // Fallback to admin.html if index.html not found
+    app.get('/', (req, res) => {
+      res.redirect('/app/admin.html');
+    });
+  }
+}
 
 const CONFIG = require('./config');
 const AUTH_TOKEN = crypto.createHash('sha256').update(CONFIG.bot_token + ':remote').digest('hex').substring(0, 16);

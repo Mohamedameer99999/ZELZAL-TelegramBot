@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ZELZAL Security</title>
+<meta name="description" content="منصة ZELZAL Security لإدارة التراخيص والتحقق من المنتجات">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box }
+body {
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  background: linear-gradient(135deg, #0a0a15, #1a1a2e);
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.container {
+  text-align: center;
+  padding: 40px;
+}
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, #00f5a0, #00d9f5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.subtitle {
+  font-size: 1.2rem;
+  color: #889;
+  margin-bottom: 30px;
+}
+.btn {
+  padding: 15px 30px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: linear-gradient(135deg, #00f5a0, #00d9f5);
+  color: #0a0a15;
+  transition: all 0.3s;
+  text-decoration: none;
+  display: inline-block;
+}
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 245, 160, 0.3);
+}
+.info {
+  margin-top: 30px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.info a {
+  color: #00f5a0;
+  text-decoration: none;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>ZELZAL Security</h1>
+  <p class="subtitle">منصة إدارة التراخيص والتحقق من المنتجات</p>
+  <a href="/app/admin.html" class="btn">الولوج إلى لوحة التحكم</a>
+  <div class="info">
+    <p>يتم تشغيل هذا الموقع بواسطة <strong>ZELZAL Telegram Bot</strong></p>
+    <p>إحصائيات حية: <a href="/api/public-stats">الإحصائيات العامة</a></p>
+    <p>صفحة التحقق من التراخيص: <a href="/app/portal.html">بوابة التحميل</a></p>
+  </div>
+</div>
+</body>
+</html>
