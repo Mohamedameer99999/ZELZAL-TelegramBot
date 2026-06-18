@@ -14,7 +14,8 @@ const SOURCES = [
   { name: 'BleepingComputer', url: 'https://www.bleepingcomputer.com/feed/', emoji: '💻', lang: 'en' },
   { name: 'Krebs on Security', url: 'https://krebsonsecurity.com/feed/', emoji: '🔍', lang: 'en' },
   { name: 'PortSwigger Research', url: 'https://portswigger.net/research/rss', emoji: '🔬', lang: 'en' },
-  { name: 'العربية', url: 'https://www.alarabiya.net/feed/rss2/ar/technology.xml', emoji: '🇸🇦', lang: 'ar' },
+  { name: 'SecurityWeek', url: 'https://www.securityweek.com/feed/', emoji: '🛡️', lang: 'en' },
+  { name: 'Dark Reading', url: 'https://www.darkreading.com/rss.xml', emoji: '🌙', lang: 'en' },
 ];
 
 let postedUrls = {};
