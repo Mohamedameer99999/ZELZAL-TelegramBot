@@ -24,7 +24,7 @@ KEEP_DAYS = 30
 DRIVE_KEY_PATH = r"F:\zelzal prog-AI\Telegram-Bot\google-drive-key.json"
 DRIVE_FOLDER_NAME = "ZELZAL_Backups"
 
-# Code files to backup alongside DB
+# Code files to backup alongside DB (including new Railway deployment files)
 CODE_FILES = [
     r"F:\zelzal prog-AI\Telegram-Bot\bot.js",
     r"F:\zelzal prog-AI\Telegram-Bot\database.js",
@@ -33,6 +33,27 @@ CODE_FILES = [
     r"F:\zelzal prog-AI\Telegram-Bot\auto-executor.js",
     r"F:\zelzal prog-AI\Telegram-Bot\remote-server.js",
     r"F:\zelzal prog-AI\Telegram-Bot\subscription-manager.js",
+    # New Railway deployment files
+    r"F:\zelzal prog-AI\Telegram-Bot\config.js",
+    r"F:\zelzal prog-AI\Telegram-Bot\start.js",
+    r"F:\zelzal prog-AI\Telegram-Bot\package.json",
+    r"F:\zelzal prog-AI\Telegram-Bot\railway.toml",
+    r"F:\zelzal prog-AI\Telegram-Bot\nixpacks.toml",
+    r"F:\zelzal prog-AI\Telegram-Bot\public\index.html",
+    r"F:\zelzal prog-AI\Telegram-Bot\public\admin.html",
+    r"F:\zelzal prog-AI\Telegram-Bot\public\portal.html",
+    r"F:\zelzal prog-AI\Telegram-Bot\public\api.js",
+    r"F:\zelzal prog-AI\Telegram-Bot\public\tunnel-url.txt",
+    # Other important scripts
+    r"F:\zelzal prog-AI\Telegram-Bot\ai-responder.js",
+    r"F:\zelzal prog-AI\Telegram-Bot\license-notifier.js",
+    r"F:\zelzal prog-AI\Telegram-Bot\news-aggregator.js",
+    r"F:\zelzal prog-AI\Telegram-Bot\cve-bot.js",
+    r"F:\zelzal prog-AI\Telegram-Bot\email-service.js",
+    r"F:\zelzal prog-AI\Telegram-Bot\tunnel.js",
+    r"F:\zelzal prog-AI\Telegram-Bot\ai-watcher.js",
+    r"F:\zelzal prog-AI\Telegram-Bot\_check_licenses.js",
+    r"F:\zelzal prog-AI\Telegram-Bot\_test_deploy.py",
 ]
 
 def backup_database():
