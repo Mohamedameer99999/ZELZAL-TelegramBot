@@ -1,0 +1,41 @@
+{
+  "bot_token": "YOUR_BOT_TOKEN_HERE",
+  "admin_ids": [123456789],
+  "hmac_secret": "your-hmac-secret",
+  "dashboard_url": "https://your-site.pythonanywhere.com",
+  "whatsapp": "https://wa.me/201234567890",
+  "payment_phone": "01234567890",
+  "website": "https://your-site.github.io",
+  "channel": "@YourChannel",
+  "bot_username": "YourBot",
+  "translate_news": true,
+  "openai_api_key": "sk-...",
+  "openai_model": "gpt-4o",
+  "gemini_api_key": "AI...",
+  "gemini_model": "gemini-2.0-flash",
+  "groq_api_key": "gsk_...",
+  "groq_model": "llama-3.3-70b-versatile",
+  "smtp": {
+    "host": "smtp.sendgrid.net",
+    "port": 587,
+    "user": "apikey",
+    "pass": "SG....",
+    "from": "Name <email@example.com>"
+  },
+  "subscription": {
+    "reminder_days": [7, 3, 1],
+    "grace_period_days": 3,
+    "check_interval_minutes": 60,
+    "auto_renew_default": true
+  },
+  "webhook": {
+    "port": 3457,
+    "secret": "your-webhook-secret",
+    "allowed_ips": ["127.0.0.1", "::1"]
+  },
+  "affiliate": {
+    "commission_percent": 10,
+    "min_payout": 100,
+    "referral_bonus": 20
+  }
+}

@@ -1,0 +1,77 @@
+[
+  {
+    "id": "cybershield",
+    "name": "🛡️ CYBER SHIELD v5.0.0",
+    "desc": "حماية متكاملة: فحص ثغرات، جدار ناري، مكافحة فيروسات، مراقبة شبكة، كشف اقتحام",
+    "monthly": "200 ج",
+    "yearly": "1500 ج",
+    "prefix": "CYBERSHIELD",
+    "type": "main"
+  },
+  {
+    "id": "netguard",
+    "name": "📡 NetGuard Monitor v1.2.0",
+    "desc": "مراقبة الأجهزة المتصلة بالشبكة وتحليل الـ bandwidth",
+    "monthly": "150 ج",
+    "yearly": "1000 ج",
+    "prefix": "NETGUARD",
+    "type": "main"
+  },
+  {
+    "id": "filevault",
+    "name": "🔐 File Vault v1.0.0",
+    "desc": "تشفير الملفات والمجلدات وحذف آمن",
+    "monthly": "100 ج",
+    "yearly": "700 ج",
+    "prefix": "FILEVAULT",
+    "type": "main"
+  },
+  {
+    "id": "wifi",
+    "name": "📶 Wi-Fi Inspector v1.0.0",
+    "desc": "فحص شبكات الواي فاي وكشف المتطفلين والمخترقين",
+    "monthly": "100 ج",
+    "yearly": "700 ج",
+    "prefix": "WIFIINSPECTOR",
+    "type": "main"
+  },
+  {
+    "id": "usb",
+    "name": "🔌 USB Guardian v1.0.0",
+    "desc": "التحكم بمنافذ USB ومنع الاختراق عبر الفلاشة",
+    "monthly": "100 ج",
+    "yearly": "700 ج",
+    "prefix": "USBGUARDIAN",
+    "type": "main"
+  },
+  {
+    "id": "systemcleaner",
+    "name": "🧹 System Cleaner v1.0.0",
+    "desc": "تنظيف ملفات Temp و Cache و Prefetch و DNS",
+    "monthly": null,
+    "yearly": null,
+    "price": "100 ج",
+    "prefix": "SYSTEMCLEANER",
+    "type": "tool"
+  },
+  {
+    "id": "duplicatefinder",
+    "name": "📂 Duplicate Finder v1.0.0",
+    "desc": "كشف وحذف الملفات المكررة بالاسم أو البصمة",
+    "monthly": null,
+    "yearly": null,
+    "price": "100 ج",
+    "prefix": "DUPLICATEFINDER",
+    "type": "tool"
+  },
+  {
+    "id": "fileshredder",
+    "name": "🗑️ File Shredder v1.0.0",
+    "desc": "تمزيق آمن للملفات (DoD 5220.22-M)",
+    "monthly": null,
+    "yearly": null,
+    "price": "100 ج",
+    "prefix": "FILESHREDDER",
+    "type": "tool"
+  }
+]
