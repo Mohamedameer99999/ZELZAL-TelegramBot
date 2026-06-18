@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "ZELZAL Security Telegram Bot - License Management & Customer Support",
   "main": "start.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "start": "node start.js",
     "install-service": "nssm install ZELZAL-TelegramBot \"C:\\Program Files\\nodejs\\node.exe\" \"F:\\zelzal prog-AI\\Telegram-Bot\\bot.js\"",
