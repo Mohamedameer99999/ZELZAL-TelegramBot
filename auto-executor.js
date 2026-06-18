@@ -6,7 +6,7 @@ const fs = require('fs');
 db.init();
 
 const BOT_DIR = __dirname;
-const CONFIG = require('./config.json');
+const CONFIG = require('./config');
 
 const HANDLERS = [
   {

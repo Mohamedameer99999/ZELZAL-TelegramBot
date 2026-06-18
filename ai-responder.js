@@ -1,5 +1,5 @@
 const OpenAI = require('openai');
-const config = require('./config.json');
+const config = require('./config');
 const products = require('./products.json');
 
 let client = null;

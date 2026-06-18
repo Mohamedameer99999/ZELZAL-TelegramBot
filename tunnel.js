@@ -2,7 +2,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
-const CONFIG = require('./config.json');
+const CONFIG = require('./config');
 
 const URL_FILE = path.join(__dirname, 'tunnel-url.txt');
 const PID_FILE = path.join(__dirname, 'tunnel.pid');

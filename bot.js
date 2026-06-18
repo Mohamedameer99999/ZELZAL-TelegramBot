@@ -4,7 +4,7 @@ const https = require('https');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const config = require('./config.json');
+const config = require('./config');
 const autoExec = require('./auto-executor.js');
 const licenseNotifier = require('./license-notifier.js');
 

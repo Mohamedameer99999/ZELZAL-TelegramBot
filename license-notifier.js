@@ -1,5 +1,5 @@
 const db = require('./database.js');
-const config = require('./config.json');
+const config = require('./config');
 const TelegramBot = require('node-telegram-bot-api');
 
 const bot = new TelegramBot(config.bot_token, { polling: false });

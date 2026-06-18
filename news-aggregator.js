@@ -4,7 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const https = require('https');
 
-const CONFIG = require('./config.json');
+const CONFIG = require('./config');
 const CHANNEL = (CONFIG.channel || '@ZELZAL_Security').replace('@', '');
 const DB_FILE = path.join(__dirname, 'news-db.json');
 const TRANSLATE = CONFIG.translate_news !== false; // default true

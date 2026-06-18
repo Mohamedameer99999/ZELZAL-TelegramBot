@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const config = require('./config');
 
 const DB_FILE = path.join(__dirname, 'announce-db.json');
 
@@ -72,12 +73,12 @@ async function postOne(bot, idx) {
   const ann = ANNOUNCEMENTS[idx];
   const text = `${ann.title}\n━━━━━━━━━━━━━━━━━━\n${ann.body}\n\n${ann.tag}`;
   try {
-    await bot.sendMessage(`@${require('./config.json').channel.replace('@', '')}`, text, { parse_mode: 'Markdown' });
+    await bot.sendMessage(`@${config.channel.replace('@', '')}`, text, { parse_mode: 'Markdown' });
     return true;
   } catch {
     // Try without markdown
     try {
-      await bot.sendMessage(`@${require('./config.json').channel.replace('@', '')}`, text);
+      await bot.sendMessage(`@${config.channel.replace('@', '')}`, text);
       return true;
     } catch {}
     return false;

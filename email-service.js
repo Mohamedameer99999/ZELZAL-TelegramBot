@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-const CONFIG = require('./config.json');
+const CONFIG = require('./config');
 
 let transporter = null;
 

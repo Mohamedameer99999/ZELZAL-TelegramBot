@@ -1,7 +1,8 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const config = require('./config');
 
-const DB_FILE = path.join(__dirname, 'zelzal.db');
+const DB_FILE = config.db_path || path.join(__dirname, 'zelzal.db');
 let db;
 
 function init() {

@@ -1,5 +1,5 @@
 const db = require('./database.js');
-const config = require('./config.json');
+const config = require('./config');
 
 db.init();
 
