@@ -10,7 +10,9 @@ Auto backup script for SQLite database
 import os
 import shutil
 import gzip
+import json
 import sqlite3
+import requests
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -199,12 +201,72 @@ def upload_to_drive(timestamp):
         print(f"[DRIVE] Error: {e}")
         return False
 
+def upload_to_telegram(timestamp):
+    """Send backup files to admin via Telegram bot"""
+    try:
+        config_path = Path(r"F:\zelzal prog-AI\Telegram-Bot\config.json")
+        if not config_path.exists():
+            print("[TG] No config.json — skipping Telegram upload")
+            return False
+        with open(config_path) as f:
+            cfg = json.load(f)
+        token = cfg.get("bot_token", "")
+        admin_ids = cfg.get("admin_ids", [])
+        if not token or token == "YOUR_BOT_TOKEN_HERE" or not admin_ids:
+            print("[TG] Invalid bot config — skipping")
+            return False
+
+        # Find latest backup files
+        backup_dir = Path(BACKUP_DIR)
+        db_file = backup_dir / f"zelzal_{timestamp}.db.gz"
+        code_dir = backup_dir / "code"
+
+        files_to_send = []
+        if db_file.exists():
+            files_to_send.append(("db", str(db_file)))
+        if code_dir.exists():
+            for f in sorted(code_dir.glob(f"*_{timestamp}.*"))[:7]:
+                files_to_send.append(("code", str(f)))
+
+        if not files_to_send:
+            print("[TG] No backup files found")
+            return False
+
+        api = f"https://api.telegram.org/bot{token}"
+        caption = f"📦 *باك أب ZELZAL* — {timestamp}"
+
+        for file_type, file_path in files_to_send:
+            fname = Path(file_path).name
+            with open(file_path, "rb") as f:
+                r = requests.post(f"{api}/sendDocument", data={
+                    "chat_id": admin_ids[0],
+                    "caption": f"{caption}\n`{fname}`" if len(files_to_send) <= 1 else f"📄 `{fname}`",
+                    "parse_mode": "Markdown"
+                }, files={"document": (fname, f)})
+            if r.status_code == 200:
+                print(f"[TG] Sent: {fname}")
+            else:
+                print(f"[TG] Failed: {fname} — {r.text[:100]}")
+
+        if len(files_to_send) > 1:
+            requests.post(f"{api}/sendMessage", json={
+                "chat_id": admin_ids[0],
+                "text": f"✅ {len(files_to_send)} ملف باك أب أرسلت — {timestamp}",
+                "parse_mode": "Markdown"
+            })
+
+        return True
+    except Exception as e:
+        print(f"[TG] Error: {e}")
+        return False
+
 def main():
     print(f"=== ZELZAL Database Backup - {datetime.now()} ===")
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_database()
     cleanup_old_backups()
     upload_to_drive(timestamp)
+    upload_to_telegram(timestamp)
     print("=== Backup Complete ===")
 
 if __name__ == "__main__":
