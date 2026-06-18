@@ -3,8 +3,22 @@ const { exec, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const https = require('https');
 const app = express();
 app.use(express.json({ limit: '1mb' }));
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, X-Auth-Token');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
+
+const SITE_DIR = path.join(__dirname, '..', 'ZELZAL-ISO-Build');
+const PUBLIC_DIR = path.join(__dirname, 'public');
+if (fs.existsSync(SITE_DIR)) app.use(express.static(SITE_DIR));
+if (fs.existsSync(PUBLIC_DIR)) app.use('/app', express.static(PUBLIC_DIR));
 
 const CONFIG = require('./config.json');
 const AUTH_TOKEN = crypto.createHash('sha256').update(CONFIG.bot_token + ':remote').digest('hex').substring(0, 16);
@@ -264,10 +278,175 @@ app.post('/api/subscriptions/renew/:id', auth, async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════
+//              PUBLIC API (no auth)
+// ═══════════════════════════════════════════════
+
+// In-memory rate limiter for public endpoints
+const rateLimit = {};
+function checkRateLimit(ip) {
+  const now = Date.now();
+  if (!rateLimit[ip]) rateLimit[ip] = [];
+  rateLimit[ip] = rateLimit[ip].filter(t => now - t < 60000);
+  if (rateLimit[ip].length >= 20) return false;
+  rateLimit[ip].push(now);
+  return true;
+}
+
+// ── Public Stats ──
+app.get('/api/public-stats', (req, res) => {
+  try {
+    const stats = db.getDashboardStats();
+    const revenue = db.getRevenueStats('month');
+    res.json({
+      users: stats.users,
+      activeUsers: stats.activeUsers,
+      licenses: stats.licenses,
+      activeLicenses: stats.activeLicenses,
+      revenue: revenue.revenue,
+      paymentCount: revenue.paymentCount
+    });
+  } catch (err) {
+    res.json({ users: 0, activeUsers: 0, licenses: 0, activeLicenses: 0, revenue: 0, paymentCount: 0 });
+  }
+});
+
+// ── Verify License ──
+app.post('/api/verify-license', (req, res) => {
+  try {
+    const { license_key } = req.body;
+    if (!license_key) return res.json({ valid: false, reason: 'مفتاح الترخيص مطلوب' });
+    const lic = db.getLicense(license_key.trim().toUpperCase());
+    if (!lic) return res.json({ valid: false, reason: 'مفتاح الترخيص غير موجود' });
+    const isExpired = lic.expires_at && new Date(lic.expires_at) < new Date();
+    res.json({
+      valid: lic.status === 'active' && !isExpired,
+      status: isExpired ? 'expired' : lic.status,
+      product: lic.product,
+      plan_type: lic.plan_type,
+      customer_name: lic.customer_name,
+      phone: lic.phone,
+      created_at: lic.created_at,
+      expires_at: lic.expires_at,
+      activated_at: lic.activated_at
+    });
+  } catch (err) {
+    res.status(500).json({ valid: false, reason: 'خطأ في الخادم' });
+  }
+});
+
+// ── Contact Form ──
+function sendTelegramNotify(message) {
+  try {
+    const token = CONFIG.bot_token;
+    const admins = CONFIG.admin_ids || [];
+    const postData = JSON.stringify({ chat_id: admins[0], text: message, parse_mode: 'HTML' });
+    const options = {
+      hostname: 'api.telegram.org', port: 443, method: 'POST',
+      path: `/bot${token}/sendMessage`,
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }
+    };
+    const req = https.request(options);
+    req.write(postData);
+    req.end();
+  } catch {}
+}
+
+app.post('/api/contact', (req, res) => {
+  try {
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    if (!checkRateLimit(ip)) return res.status(429).json({ error: 'طلبات كثيرة — حاول بعد دقيقة' });
+    const { name, phone, message, _honeypot } = req.body;
+    if (_honeypot) return res.json({ success: true });
+    if (!name || !message) return res.status(400).json({ error: 'الاسم والرسالة مطلوبان' });
+    if (name.length > 100 || message.length > 2000) return res.status(400).json({ error: 'نص طويل جداً' });
+    const contactId = db.saveContact({ name, phone, message });
+    const notify = `📩 <b>رسالة جديدة من الموقع</b>\n👤 ${name}\n📞 ${phone || '—'}\n💬 ${message.substring(0, 500)}`;
+    sendTelegramNotify(notify);
+    log(`Contact from ${name} (${phone || 'no phone'})`);
+    res.json({ success: true, id: contactId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════
+//              ADMIN API (with auth)
+// ═══════════════════════════════════════════════
+
+// ── Admin Dashboard Stats ──
+app.get('/api/admin/stats', auth, (req, res) => {
+  try {
+    const stats = db.getDashboardStats();
+    const revenue = db.getRevenueStats('month');
+    const ticketStats = db.getTicketStats();
+    const salesByProduct = db.getSalesByProduct();
+    const monthlyRevenue = db.getMonthlyRevenue();
+    const unreadContacts = db.getUnreadContactCount();
+    res.json({
+      users: stats.users,
+      activeUsers: stats.activeUsers,
+      licenses: stats.licenses,
+      activeLicenses: stats.activeLicenses,
+      revenue: revenue.revenue,
+      paymentCount: revenue.paymentCount,
+      openTickets: ticketStats.open,
+      unreadContacts,
+      salesByProduct,
+      monthlyRevenue
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Admin Tickets ──
+app.get('/api/admin/tickets', auth, (req, res) => {
+  try {
+    const status = req.query.status || null;
+    const tickets = db.getAllTickets(status);
+    res.json({ tickets });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Admin Payments ──
+app.get('/api/admin/payments', auth, (req, res) => {
+  try {
+    const dbc = db.get();
+    const limit = parseInt(req.query.limit) || 50;
+    const payments = dbc.prepare('SELECT * FROM payments ORDER BY created_at DESC LIMIT ?').all(limit);
+    res.json({ payments });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Admin Affiliates ──
+app.get('/api/admin/affiliates', auth, (req, res) => {
+  try {
+    const affiliates = db.getAllAffiliates();
+    res.json({ affiliates });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Admin Contacts ──
+app.get('/api/admin/contacts', auth, (req, res) => {
+  try {
+    const contacts = db.getContacts(50);
+    res.json({ contacts });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ==== Health check (no auth) ====
 app.get('/api/ping', (req, res) => res.json({ pong: true, time: Date.now() }));
 
-app.listen(PORT, '127.0.0.1', () => {
+app.listen(PORT, '0.0.0.0', () => {
   log(`Remote control server running on port ${PORT}`);
   log(`Auth token: ${AUTH_TOKEN.substring(0, 8)}...`);
   // Init files

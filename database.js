@@ -130,6 +130,14 @@ function createTables() {
       closed_at TEXT,
       FOREIGN KEY (user_id) REFERENCES users(telegram_id)
     );
+    CREATE TABLE IF NOT EXISTS contacts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      phone TEXT,
+      message TEXT NOT NULL,
+      read_status INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS ticket_messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       ticket_id INTEGER NOT NULL,
@@ -463,6 +471,26 @@ function getTicketStats() {
   return { open, pending, closed, total };
 }
 
+// ─── Contacts ───
+
+function saveContact(data) {
+  const dbc = get();
+  dbc.prepare('INSERT INTO contacts (name, phone, message, created_at) VALUES (?, ?, ?, ?)').run(data.name, data.phone || '', data.message, new Date().toISOString());
+  return dbc.prepare('SELECT last_insert_rowid() as id').get().id;
+}
+
+function getContacts(limit = 50) {
+  return get().prepare('SELECT * FROM contacts ORDER BY created_at DESC LIMIT ?').all(limit);
+}
+
+function getUnreadContactCount() {
+  return get().prepare("SELECT COUNT(*) as c FROM contacts WHERE read_status = 0").get().c;
+}
+
+function markContactRead(id) {
+  get().prepare('UPDATE contacts SET read_status = 1 WHERE id = ?').run(id);
+}
+
 // ─── Enhanced Stats ───
 
 function getRevenueStats(period) {
@@ -532,4 +560,5 @@ module.exports = {
   // Enhanced Stats
   getRevenueStats, getSalesByProduct, getMonthlyRevenue,
   getDashboardStats,
+  saveContact, getContacts, getUnreadContactCount, markContactRead,
 };

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ZELZAL — لوحة التحكم</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>⚡</text></svg>">
+<script src="api.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:#0a0a15;color:#fff;min-height:100vh;direction:rtl}
+.hidden{display:none!important}
+.btn{padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .3s}
+.btn-primary{background:linear-gradient(135deg,#00f5a0,#00d9f5);color:#0a0a15}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 25px #00f5a033}
+.btn-danger{background:#ff4444;color:#fff}
+.btn-danger:hover{transform:translateY(-2px);box-shadow:0 8px 25px #ff444433}
+/* Login */
+.login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-box{background:#111122;border-radius:16px;padding:40px;width:100%;max-width:400px;border:1px solid #ffffff0a;text-align:center}
+.login-box h1{font-size:24px;margin-bottom:5px;background:linear-gradient(135deg,#00f5a0,#00d9f5);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.login-box p{color:#889;font-size:13px;margin-bottom:25px}
+.login-box input{width:100%;padding:12px 15px;background:#0a0a15;border:1px solid #ffffff15;border-radius:8px;color:#fff;font-size:15px;margin-bottom:15px;direction:ltr;text-align:left}
+.login-box input:focus{outline:none;border-color:#00f5a0}
+.login-box .error{color:#ff4444;font-size:13px;margin-bottom:10px;display:none}
+/* Dashboard */
+.dashboard{padding:20px;max-width:1300px;margin:0 auto}
+.header{display:flex;justify-content:space-between;align-items:center;padding:15px 20px;background:#111122;border-radius:12px;margin-bottom:20px;border:1px solid #ffffff0a}
+.header h2{font-size:18px;background:linear-gradient(135deg,#00f5a0,#00d9f5);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header .sub{color:#667;font-size:12px}
+.header .logout{color:#ff4444;cursor:pointer;font-size:13px;padding:6px 14px;border:1px solid #ff444444;border-radius:6px;transition:all .3s}
+.header .logout:hover{background:#ff444415}
+.tabs{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.tab{padding:10px 20px;border-radius:8px;background:#111122;border:1px solid #ffffff0a;color:#889;cursor:pointer;font-size:14px;transition:all .3s}
+.tab:hover{border-color:#00f5a033;color:#fff}
+.tab.active{background:#00f5a015;border-color:#00f5a0;color:#00f5a0}
+.tab .badge{background:#ff4444;color:#fff;border-radius:10px;padding:2px 8px;font-size:11px;margin-right:5px}
+/* Stats Grid */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:25px}
+.stat-card{background:#111122;border-radius:12px;padding:20px;border:1px solid #ffffff0a;text-align:center}
+.stat-card .num{font-size:32px;font-weight:800;background:linear-gradient(135deg,#00f5a0,#00d9f5);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-card .label{color:#889;font-size:13px;margin-top:5px}
+.stat-card .sub-label{color:#667;font-size:11px;margin-top:3px}
+/* Tables */
+.table-wrap{background:#111122;border-radius:12px;border:1px solid #ffffff0a;overflow:hidden;margin-bottom:25px}
+.table-wrap h3{padding:15px 20px;font-size:16px;border-bottom:1px solid #ffffff0a}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:right;padding:12px 15px;color:#889;font-weight:600;border-bottom:1px solid #ffffff0a;font-size:12px}
+td{padding:10px 15px;border-bottom:1px solid #ffffff05;color:#ccc}
+tr:hover td{background:#ffffff05}
+.status{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.status.active,.status.completed,.status.paid{background:#00f5a015;color:#00f5a0}
+.status.open,.status.pending{background:#ffaa0015;color:#ffaa00}
+.status.closed,.status.cancelled,.status.expired{background:#ff444415;color:#ff4444}
+.empty{text-align:center;padding:40px;color:#667;font-size:14px}
+.loading{text-align:center;padding:40px;color:#667}
+.spinner{width:24px;height:24px;border:3px solid #ffffff0a;border-top-color:#00f5a0;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Tab content */
+.tab-content{display:none}
+.tab-content.active{display:block}
+/* Responsive */
+@media(max-width:768px){
+  .dashboard{padding:10px}
+  .header{flex-direction:column;gap:10px;text-align:center}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  table{font-size:12px}
+  th,td{padding:8px 10px}
+}
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+<div class="login-box">
+<h1>⚡ ZELZAL</h1>
+<p>لوحة التحكم — أدخل رمز الدخول</p>
+<input type="password" id="passInput" placeholder="Admin Token" onkeydown="if(event.key==='Enter')doLogin()">
+<div class="error" id="loginError">❌ رمز الدخول غير صحيح</div>
+<button class="btn btn-primary" onclick="doLogin()" style="width:100%;justify-content:center">دخول</button>
+</div>
+</div>
+
+<div class="dashboard hidden" id="dashboardScreen">
+<div class="header">
+<div>
+<h2>⚡ لوحة التحكم — ZELZAL SECURITY</h2>
+<div class="sub" id="headerSub"></div>
+</div>
+<div class="logout" onclick="doLogout()">تسجيل خروج</div>
+</div>
+
+<div class="tabs" id="tabsContainer">
+<div class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">📊 لوحة الإحصائيات</div>
+<div class="tab" data-tab="tickets" onclick="switchTab('tickets')">🎫 التذاكر</div>
+<div class="tab" data-tab="payments" onclick="switchTab('payments')">💳 المدفوعات</div>
+<div class="tab" data-tab="affiliates" onclick="switchTab('affiliates')">🤝 المسوقين</div>
+<div class="tab" data-tab="contacts" onclick="switchTab('contacts')">✉️ رسائل الموقع</div>
+</div>
+
+<div class="tab-content active" id="tab-dashboard">
+
+<div class="stats-grid" id="statsGrid">
+<div class="stat-card"><div class="num" id="sUsers">0</div><div class="label">إجمالي المستخدمين</div></div>
+<div class="stat-card"><div class="num" id="sActiveUsers">0</div><div class="label">نشط اليوم</div></div>
+<div class="stat-card"><div class="num" id="sLicenses">0</div><div class="label">إجمالي التراخيص</div></div>
+<div class="stat-card"><div class="num" id="sActiveLicenses">0</div><div class="label">تراخيص نشطة</div></div>
+<div class="stat-card"><div class="num" id="sRevenue">0</div><div class="sub-label" id="sRevenuePeriod">آخر 30 يوم</div></div>
+<div class="stat-card"><div class="num" id="sRevenueCount">0</div><div class="label">عدد المدفوعات</div></div>
+<div class="stat-card"><div class="num" id="sTickets">0</div><div class="label">تذاكر مفتوحة</div></div>
+<div class="stat-card"><div class="num" id="sContacts">0</div><div class="label">رسائل غير مقروءة</div></div>
+</div>
+
+<div class="table-wrap">
+<h3>📈 المبيعات حسب المنتج</h3>
+<div id="salesByProduct"><div class="loading">جاري التحميل...</div></div>
+</div>
+
+<div class="table-wrap">
+<h3>📅 الإيرادات الشهرية</h3>
+<div id="monthlyRevenue"><div class="loading">جاري التحميل...</div></div>
+</div>
+</div>
+
+<div class="tab-content" id="tab-tickets">
+<div class="table-wrap">
+<h3>🎫 جميع التذاكر</h3>
+<div id="ticketsTable"><div class="loading"><div class="spinner"></div>جاري التحميل...</div></div>
+</div>
+</div>
+
+<div class="tab-content" id="tab-payments">
+<div class="table-wrap">
+<h3>💳 آخر المدفوعات</h3>
+<div id="paymentsTable"><div class="loading"><div class="spinner"></div>جاري التحميل...</div></div>
+</div>
+</div>
+
+<div class="tab-content" id="tab-affiliates">
+<div class="table-wrap">
+<h3>🤝 المسوقين</h3>
+<div id="affiliatesTable"><div class="loading"><div class="spinner"></div>جاري التحميل...</div></div>
+</div>
+</div>
+
+<div class="tab-content" id="tab-contacts">
+<div class="table-wrap">
+<h3>✉️ رسائل الموقع</h3>
+<div id="contactsTable"><div class="loading"><div class="spinner"></div>جاري التحميل...</div></div>
+</div>
+</div>
+</div>
+
+<script>
+async function doLogin() {
+  const token = document.getElementById('passInput').value.trim();
+  if (!token) return;
+  API.token = token;
+  try {
+    const data = await API.get('/api/status');
+    API.setToken(token);
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('dashboardScreen').classList.remove('hidden');
+    document.getElementById('headerSub').textContent = 'آخر تحديث: ' + new Date().toLocaleString('ar-EG');
+    loadAll();
+  } catch {
+    API.clearToken();
+    document.getElementById('loginError').style.display = 'block';
+    setTimeout(() => document.getElementById('loginError').style.display = 'none', 3000);
+  }
+}
+
+function doLogout() {
+  API.clearToken();
+  document.getElementById('dashboardScreen').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('passInput').value = '';
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.querySelector('.tab[data-tab="' + name + '"]').classList.add('active');
+}
+
+async function loadAll() {
+  await Promise.all([loadDashboard(), loadTickets(), loadPayments(), loadAffiliates(), loadContacts()]);
+  setTimeout(loadAll, 30000);
+}
+
+function num(n) { return typeof n === 'number' ? n.toLocaleString('ar-EG') : n || '0'; }
+
+function animate(el, target) {
+  if (!el) return;
+  const current = parseInt(el.textContent.replace(/[,\s]/g, '')) || 0;
+  if (current === target) return;
+  const step = Math.max(1, Math.ceil((target - current) / 20));
+  let val = current;
+  const interval = setInterval(() => {
+    val += step;
+    if (val >= target) { val = target; clearInterval(interval); }
+    el.textContent = num(val);
+  }, 40);
+}
+
+// ── Dashboard ──
+async function loadDashboard() {
+  try {
+    const stats = await API.getAdminStats();
+    animate(document.getElementById('sUsers'), stats.users);
+    animate(document.getElementById('sActiveUsers'), stats.activeUsers);
+    animate(document.getElementById('sLicenses'), stats.licenses);
+    animate(document.getElementById('sActiveLicenses'), stats.activeLicenses);
+    animate(document.getElementById('sTickets'), stats.openTickets);
+    animate(document.getElementById('sContacts'), stats.unreadContacts);
+
+    const rev = document.getElementById('sRevenue');
+    const revCount = document.getElementById('sRevenueCount');
+    if (rev) { rev.textContent = num(stats.revenue) + ' ج'; }
+    if (revCount) revCount.textContent = num(stats.paymentCount);
+
+    // Sales by product
+    const sbp = document.getElementById('salesByProduct');
+    if (stats.salesByProduct && stats.salesByProduct.length) {
+      sbp.innerHTML = '<table><thead><tr><th>المنتج</th><th>عدد التراخيص</th></tr></thead><tbody>' +
+        stats.salesByProduct.map(p => '<tr><td>' + (p.product || 'غير معروف') + '</td><td>' + num(p.count) + '</td></tr>').join('') +
+        '</tbody></table>';
+    } else { sbp.innerHTML = '<div class="empty">لا توجد مبيعات بعد</div>'; }
+
+    // Monthly revenue
+    const mr = document.getElementById('monthlyRevenue');
+    if (stats.monthlyRevenue && stats.monthlyRevenue.length) {
+      mr.innerHTML = '<table><thead><tr><th>الشهر</th><th>الإيرادات</th><th>عدد المعاملات</th></tr></thead><tbody>' +
+        stats.monthlyRevenue.map(m => '<tr><td>' + (m.month || '') + '</td><td>' + num(m.revenue) + ' ج</td><td>' + num(m.count) + '</td></tr>').join('') +
+        '</tbody></table>';
+    } else { mr.innerHTML = '<div class="empty">لا توجد إيرادات بعد</div>'; }
+  } catch (e) { console.error('Dashboard error:', e); }
+}
+
+// ── Tickets ──
+async function loadTickets() {
+  try {
+    const data = await API.getAdminTickets();
+    const el = document.getElementById('ticketsTable');
+    if (!data.tickets || !data.tickets.length) {
+      el.innerHTML = '<div class="empty">🎉 لا توجد تذاكر</div>'; return;
+    }
+    el.innerHTML = '<table><thead><tr><th>#</th><th>الموضوع</th><th>المستخدم</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>' +
+      data.tickets.map(t => '<tr><td>' + t.id + '</td><td>' + (t.subject || '') + '</td><td>' + (t.first_name || t.username || '#' + t.user_id) + '</td><td><span class="status ' + t.status + '">' + (t.status === 'open' ? 'مفتوحة' : t.status === 'pending' ? 'بانتظار الرد' : t.status === 'closed' ? 'مغلقة' : t.status) + '</span></td><td>' + (t.created_at ? new Date(t.created_at).toLocaleDateString('ar-EG') : '') + '</td></tr>').join('') +
+      '</tbody></table>';
+  } catch { document.getElementById('ticketsTable').innerHTML = '<div class="empty">فشل التحميل</div>'; }
+}
+
+// ── Payments ──
+async function loadPayments() {
+  try {
+    const data = await API.getAdminPayments(30);
+    const el = document.getElementById('paymentsTable');
+    if (!data.payments || !data.payments.length) {
+      el.innerHTML = '<div class="empty">💳 لا توجد مدفوعات</div>'; return;
+    }
+    el.innerHTML = '<table><thead><tr><th>المرجع</th><th>المنتج</th><th>المبلغ</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>' +
+      data.payments.map(p => '<tr><td>' + (p.payment_ref || '—') + '</td><td>' + (p.product_id || '') + '</td><td>' + num(p.amount) + ' ج</td><td><span class="status ' + p.status + '">' + (p.status === 'completed' ? 'مكتمل' : p.status === 'pending' ? 'معلق' : p.status) + '</span></td><td>' + (p.created_at ? new Date(p.created_at).toLocaleDateString('ar-EG') : '') + '</td></tr>').join('') +
+      '</tbody></table>';
+  } catch { document.getElementById('paymentsTable').innerHTML = '<div class="empty">فشل التحميل</div>'; }
+}
+
+// ── Affiliates ──
+async function loadAffiliates() {
+  try {
+    const data = await API.getAdminAffiliates();
+    const el = document.getElementById('affiliatesTable');
+    if (!data.affiliates || !data.affiliates.length) {
+      el.innerHTML = '<div class="empty">🤝 لا يوجد مسوقين بعد</div>'; return;
+    }
+    el.innerHTML = '<table><thead><tr><th>المسوق</th><th>الكود</th><th>الإحالات</th><th>الأرباح</th><th>المدفوع</th></tr></thead><tbody>' +
+      data.affiliates.map(a => '<tr><td>' + (a.first_name || a.username || '#' + a.user_id) + '</td><td>' + (a.code || '') + '</td><td>' + num(a.referral_count) + '</td><td>' + num(a.total_earned) + ' ج</td><td>' + num(a.total_paid) + ' ج</td></tr>').join('') +
+      '</tbody></table>';
+  } catch { document.getElementById('affiliatesTable').innerHTML = '<div class="empty">فشل التحميل</div>'; }
+}
+
+// ── Contacts ──
+async function loadContacts() {
+  try {
+    const data = await API.getAdminContacts();
+    const el = document.getElementById('contactsTable');
+    if (!data.contacts || !data.contacts.length) {
+      el.innerHTML = '<div class="empty">✉️ لا توجد رسائل</div>'; return;
+    }
+    el.innerHTML = '<table><thead><tr><th>الاسم</th><th>رقم الهاتف</th><th>الرسالة</th><th>التاريخ</th></tr></thead><tbody>' +
+      data.contacts.map(c => '<tr style="' + (!c.read_status ? 'font-weight:bold' : '') + '"><td>' + (c.name || '') + '</td><td>' + (c.phone || '—') + '</td><td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (c.message || '') + '</td><td>' + (c.created_at ? new Date(c.created_at).toLocaleDateString('ar-EG') : '') + '</td></tr>').join('') +
+      '</tbody></table>';
+  } catch { document.getElementById('contactsTable').innerHTML = '<div class="empty">فشل التحميل</div>'; }
+}
+
+// Initialize - check if already logged in
+if (API.hasToken()) {
+  API.get('/api/status').then(() => {
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('dashboardScreen').classList.remove('hidden');
+    document.getElementById('headerSub').textContent = 'آخر تحديث: ' + new Date().toLocaleString('ar-EG');
+    loadAll();
+  }).catch(() => API.clearToken());
+}
+</script>
+</body>
+</html>

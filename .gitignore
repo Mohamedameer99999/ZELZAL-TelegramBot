@@ -5,6 +5,7 @@ zelzal.db-wal
 backups/
 *.log
 *.bat
+!start-tunnel.bat
 README.md
 users.json
 pending-commands.json
@@ -16,3 +17,13 @@ bot-output.log
 _new_for_ai.json
 
 config.json
+
+# Tunnel runtime
+tunnel-url.txt
+tunnel.pid
+tunnel-node.pid
+bore.pid
+tunnel.log
+
+# Binaries
+*.exe
