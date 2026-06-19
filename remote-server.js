@@ -20,18 +20,14 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 if (fs.existsSync(SITE_DIR)) app.use(express.static(SITE_DIR));
 if (fs.existsSync(PUBLIC_DIR)) {
   app.use('/app', express.static(PUBLIC_DIR));
-  // Serve index.html from public directory at root
+  app.use(express.static(PUBLIC_DIR));
+  // Serve index.html and buy.html at root
   if (fs.existsSync(path.join(PUBLIC_DIR, 'index.html'))) {
     app.get('/', (req, res) => {
       res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
     });
-  } else {
-    // Fallback to admin.html if index.html not found
-    app.get('/', (req, res) => {
-      res.redirect('/app/admin.html');
-    });
   }
-  // Serve buy.html at /buy
+  // Serve buy page at /buy
   if (fs.existsSync(path.join(PUBLIC_DIR, 'buy.html'))) {
     app.get('/buy', (req, res) => {
       res.sendFile(path.join(PUBLIC_DIR, 'buy.html'));
