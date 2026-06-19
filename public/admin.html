@@ -98,6 +98,7 @@ tr:hover td{background:#ffffff05}
 <div class="tab" data-tab="payments" onclick="switchTab('payments')">💳 المدفوعات</div>
 <div class="tab" data-tab="affiliates" onclick="switchTab('affiliates')">🤝 المسوقين</div>
 <div class="tab" data-tab="contacts" onclick="switchTab('contacts')">✉️ رسائل الموقع</div>
+<div class="tab" data-tab="products" onclick="switchTab('products')">📦 المنتجات</div>
 </div>
 
 <div class="tab-content active" id="tab-dashboard">
@@ -156,6 +157,13 @@ tr:hover td{background:#ffffff05}
 </div>
 </div>
 
+<div class="tab-content" id="tab-products">
+<div class="table-wrap">
+<h3>📦 المنتجات</h3>
+<div id="productsList"><div class="loading"><div class="spinner"></div>جاري التحميل...</div></div>
+</div>
+</div>
+
 <script>
 async function doLogin() {
   const token = document.getElementById('passInput').value.trim();
@@ -190,7 +198,7 @@ function switchTab(name) {
 }
 
 async function loadAll() {
-  await Promise.all([loadDashboard(), loadTickets(), loadPayments(), loadAffiliates(), loadContacts()]);
+  await Promise.all([loadDashboard(), loadTickets(), loadPayments(), loadAffiliates(), loadContacts(), loadProducts()]);
   setTimeout(loadAll, 30000);
 }
 
@@ -252,30 +260,64 @@ async function loadDashboard() {
 }
 
 // ── Tickets ──
+let ticketsPage = 0;
+let ticketsSearch = '';
 async function loadTickets() {
   try {
-    const data = await API.getAdminTickets();
+    const offset = ticketsPage * 15;
+    const searchParam = ticketsSearch ? '&search=' + encodeURIComponent(ticketsSearch) : '';
+    const data = await API.get('/api/admin/tickets?offset=' + offset + '&limit=15' + searchParam);
     const el = document.getElementById('ticketsTable');
+    const totalPages = Math.ceil((data.total || 0) / 15);
     if (!data.tickets || !data.tickets.length) {
       el.innerHTML = '<div class="empty">🎉 لا توجد تذاكر</div>'; return;
     }
-    el.innerHTML = '<table><thead><tr><th>#</th><th>الموضوع</th><th>المستخدم</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>' +
+    let html = '<div style="padding:10px 15px;display:flex;gap:8px;border-bottom:1px solid #ffffff0a">' +
+      '<input type="text" id="ticketsSearchInput" placeholder="🔍 بحث..." value="' + ticketsSearch + '" style="flex:1;padding:8px 12px;background:#0a0a15;border:1px solid #ffffff15;border-radius:6px;color:#fff" onkeydown="if(event.key===\'Enter\'){ticketsSearch=this.value;ticketsPage=0;loadTickets()}">' +
+      '<button class="btn btn-primary" style="padding:8px 16px" onclick="ticketsSearch=document.getElementById(\'ticketsSearchInput\').value;ticketsPage=0;loadTickets()">بحث</button>' +
+      '</div>';
+    html += '<table><thead><tr><th>#</th><th>الموضوع</th><th>المستخدم</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>' +
       data.tickets.map(t => '<tr><td>' + t.id + '</td><td>' + (t.subject || '') + '</td><td>' + (t.first_name || t.username || '#' + t.user_id) + '</td><td><span class="status ' + t.status + '">' + (t.status === 'open' ? 'مفتوحة' : t.status === 'pending' ? 'بانتظار الرد' : t.status === 'closed' ? 'مغلقة' : t.status) + '</span></td><td>' + (t.created_at ? new Date(t.created_at).toLocaleDateString('ar-EG') : '') + '</td></tr>').join('') +
       '</tbody></table>';
+    if (totalPages > 1) {
+      html += '<div style="padding:10px 15px;display:flex;justify-content:center;gap:8px">' +
+        '<button class="btn" style="background:#111122;color:#fff;padding:6px 14px" onclick="ticketsPage=Math.max(0,ticketsPage-1);loadTickets()" ' + (ticketsPage === 0 ? 'disabled' : '') + '>← السابق</button>' +
+        '<span style="color:#889;padding:6px 10px">' + (ticketsPage + 1) + ' / ' + totalPages + '</span>' +
+        '<button class="btn" style="background:#111122;color:#fff;padding:6px 14px" onclick="ticketsPage=Math.min(' + (totalPages - 1) + ',ticketsPage+1);loadTickets()" ' + (ticketsPage >= totalPages - 1 ? 'disabled' : '') + '>التالي →</button>' +
+        '</div>';
+    }
+    el.innerHTML = html;
   } catch { document.getElementById('ticketsTable').innerHTML = '<div class="empty">فشل التحميل</div>'; }
 }
 
 // ── Payments ──
+let paymentsPage = 0;
+let paymentsSearch = '';
 async function loadPayments() {
   try {
-    const data = await API.getAdminPayments(30);
+    const offset = paymentsPage * 15;
+    const searchParam = paymentsSearch ? '&search=' + encodeURIComponent(paymentsSearch) : '';
+    const data = await API.get('/api/admin/payments?offset=' + offset + '&limit=15' + searchParam);
     const el = document.getElementById('paymentsTable');
+    const totalPages = Math.ceil((data.total || 0) / 15);
     if (!data.payments || !data.payments.length) {
       el.innerHTML = '<div class="empty">💳 لا توجد مدفوعات</div>'; return;
     }
-    el.innerHTML = '<table><thead><tr><th>المرجع</th><th>المنتج</th><th>المبلغ</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>' +
+    let html = '<div style="padding:10px 15px;display:flex;gap:8px;border-bottom:1px solid #ffffff0a">' +
+      '<input type="text" id="paymentsSearchInput" placeholder="🔍 بحث..." value="' + paymentsSearch + '" style="flex:1;padding:8px 12px;background:#0a0a15;border:1px solid #ffffff15;border-radius:6px;color:#fff" onkeydown="if(event.key===\'Enter\'){paymentsSearch=this.value;paymentsPage=0;loadPayments()}">' +
+      '<button class="btn btn-primary" style="padding:8px 16px" onclick="paymentsSearch=document.getElementById(\'paymentsSearchInput\').value;paymentsPage=0;loadPayments()">بحث</button>' +
+      '</div>';
+    html += '<table><thead><tr><th>المرجع</th><th>المنتج</th><th>المبلغ</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>' +
       data.payments.map(p => '<tr><td>' + (p.payment_ref || '—') + '</td><td>' + (p.product_id || '') + '</td><td>' + num(p.amount) + ' ج</td><td><span class="status ' + p.status + '">' + (p.status === 'completed' ? 'مكتمل' : p.status === 'pending' ? 'معلق' : p.status) + '</span></td><td>' + (p.created_at ? new Date(p.created_at).toLocaleDateString('ar-EG') : '') + '</td></tr>').join('') +
       '</tbody></table>';
+    if (totalPages > 1) {
+      html += '<div style="padding:10px 15px;display:flex;justify-content:center;gap:8px">' +
+        '<button class="btn" style="background:#111122;color:#fff;padding:6px 14px" onclick="paymentsPage=Math.max(0,paymentsPage-1);loadPayments()" ' + (paymentsPage === 0 ? 'disabled' : '') + '>← السابق</button>' +
+        '<span style="color:#889;padding:6px 10px">' + (paymentsPage + 1) + ' / ' + totalPages + '</span>' +
+        '<button class="btn" style="background:#111122;color:#fff;padding:6px 14px" onclick="paymentsPage=Math.min(' + (totalPages - 1) + ',paymentsPage+1);loadPayments()" ' + (paymentsPage >= totalPages - 1 ? 'disabled' : '') + '>التالي →</button>' +
+        '</div>';
+    }
+    el.innerHTML = html;
   } catch { document.getElementById('paymentsTable').innerHTML = '<div class="empty">فشل التحميل</div>'; }
 }
 
@@ -386,6 +428,20 @@ function roundRect(ctx,x,y,w,h,r) {
   ctx.lineTo(x,y+r);
   ctx.quadraticCurveTo(x,y,x+r,y);
   ctx.closePath();
+}
+
+// ── Products ──
+async function loadProducts() {
+  try {
+    const data = await API.get('/api/admin/products');
+    const el = document.getElementById('productsList');
+    if (!data.products || !data.products.length) {
+      el.innerHTML = '<div class="empty">📦 لا توجد منتجات</div>'; return;
+    }
+    el.innerHTML = '<table><thead><tr><th>المعرف</th><th>الاسم</th><th>النوع</th><th>شهري</th><th>سنوي</th><th>البادئة</th></tr></thead><tbody>' +
+      data.products.map(p => '<tr><td>' + (p.id || '') + '</td><td>' + (p.name || '') + '</td><td>' + (p.type || '') + '</td><td>' + (p.monthly || '—') + '</td><td>' + (p.yearly || '—') + '</td><td>' + (p.prefix || '') + '</td></tr>').join('') +
+      '</tbody></table>';
+  } catch { document.getElementById('productsList').innerHTML = '<div class="empty">فشل التحميل</div>'; }
 }
 
 // Initialize - check if already logged in

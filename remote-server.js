@@ -297,19 +297,39 @@ app.post('/api/subscriptions/renew/:id', auth, async (req, res) => {
 //              PUBLIC API (no auth)
 // ═══════════════════════════════════════════════
 
-// In-memory rate limiter for public endpoints
-const rateLimit = {};
-function checkRateLimit(ip) {
-  const now = Date.now();
-  if (!rateLimit[ip]) rateLimit[ip] = [];
-  rateLimit[ip] = rateLimit[ip].filter(t => now - t < 60000);
-  if (rateLimit[ip].length >= 20) return false;
-  rateLimit[ip].push(now);
-  return true;
+// Rate limiter middleware for public endpoints
+const rateLimitStore = {};
+function rateLimitMiddleware(maxReqs = 20, windowMs = 60000) {
+  return (req, res, next) => {
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    const now = Date.now();
+    if (!rateLimitStore[ip]) rateLimitStore[ip] = [];
+    rateLimitStore[ip] = rateLimitStore[ip].filter(t => now - t < windowMs);
+    if (rateLimitStore[ip].length >= maxReqs) {
+      return res.status(429).json({ error: `طلبات كثيرة — حاول بعد ${Math.ceil(windowMs / 1000)} ثانية` });
+    }
+    rateLimitStore[ip].push(now);
+    next();
+  };
+}
+
+// Higher limit for authenticated endpoints
+function authRateLimit(maxReqs = 60, windowMs = 60000) {
+  return (req, res, next) => {
+    const key = req.headers['x-auth-token'] || req.ip || 'unknown';
+    const now = Date.now();
+    if (!rateLimitStore['auth_' + key]) rateLimitStore['auth_' + key] = [];
+    rateLimitStore['auth_' + key] = rateLimitStore['auth_' + key].filter(t => now - t < windowMs);
+    if (rateLimitStore['auth_' + key].length >= maxReqs) {
+      return res.status(429).json({ error: 'طلبات كثيرة' });
+    }
+    rateLimitStore['auth_' + key].push(now);
+    next();
+  };
 }
 
 // ── Public Stats ──
-app.get('/api/public-stats', (req, res) => {
+app.get('/api/public-stats', rateLimitMiddleware(10, 60000), (req, res) => {
   try {
     const stats = db.getDashboardStats();
     const revenue = db.getRevenueStats('month');
@@ -327,7 +347,7 @@ app.get('/api/public-stats', (req, res) => {
 });
 
 // ── Verify License ──
-app.post('/api/verify-license', (req, res) => {
+app.post('/api/verify-license', rateLimitMiddleware(20, 60000), (req, res) => {
   try {
     const { license_key } = req.body;
     if (!license_key) return res.json({ valid: false, reason: 'مفتاح الترخيص مطلوب' });
@@ -367,10 +387,8 @@ function sendTelegramNotify(message) {
   } catch {}
 }
 
-app.post('/api/contact', (req, res) => {
+app.post('/api/contact', rateLimitMiddleware(5, 60000), (req, res) => {
   try {
-    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
-    if (!checkRateLimit(ip)) return res.status(429).json({ error: 'طلبات كثيرة — حاول بعد دقيقة' });
     const { name, phone, message, _honeypot } = req.body;
     if (_honeypot) return res.json({ success: true });
     if (!name || !message) return res.status(400).json({ error: 'الاسم والرسالة مطلوبان' });
@@ -390,7 +408,7 @@ app.post('/api/contact', (req, res) => {
 // ═══════════════════════════════════════════════
 
 // ── Admin Dashboard Stats ──
-app.get('/api/admin/stats', auth, (req, res) => {
+app.get('/api/admin/stats', auth, authRateLimit(), (req, res) => {
   try {
     const stats = db.getDashboardStats();
     const revenue = db.getRevenueStats('month');
@@ -415,24 +433,50 @@ app.get('/api/admin/stats', auth, (req, res) => {
   }
 });
 
-// ── Admin Tickets ──
+// ── Admin Tickets (with pagination + search) ──
 app.get('/api/admin/tickets', auth, (req, res) => {
   try {
     const status = req.query.status || null;
-    const tickets = db.getAllTickets(status);
-    res.json({ tickets });
+    const offset = parseInt(req.query.offset) || 0;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+    const search = req.query.search || '';
+    let tickets = db.getAllTickets(status);
+    // Filter by search
+    if (search) {
+      const s = search.toLowerCase();
+      tickets = tickets.filter(t =>
+        (t.subject && t.subject.toLowerCase().includes(s)) ||
+        (t.first_name && t.first_name.toLowerCase().includes(s)) ||
+        (t.username && t.username.toLowerCase().includes(s))
+      );
+    }
+    const total = tickets.length;
+    const page = tickets.slice(offset, offset + limit);
+    res.json({ tickets: page, total, offset, limit });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ── Admin Payments ──
+// ── Admin Payments (with pagination + search) ──
 app.get('/api/admin/payments', auth, (req, res) => {
   try {
     const dbc = db.get();
-    const limit = parseInt(req.query.limit) || 50;
-    const payments = dbc.prepare('SELECT * FROM payments ORDER BY created_at DESC LIMIT ?').all(limit);
-    res.json({ payments });
+    const offset = parseInt(req.query.offset) || 0;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+    const search = req.query.search || '';
+    let allPayments = dbc.prepare('SELECT * FROM payments ORDER BY created_at DESC').all();
+    if (search) {
+      const s = search.toLowerCase();
+      allPayments = allPayments.filter(p =>
+        (p.payment_ref && p.payment_ref.toLowerCase().includes(s)) ||
+        (p.product_id && p.product_id.toLowerCase().includes(s)) ||
+        (p.phone && p.phone.includes(s))
+      );
+    }
+    const total = allPayments.length;
+    const payments = allPayments.slice(offset, offset + limit);
+    res.json({ payments, total, offset, limit });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -456,6 +500,52 @@ app.get('/api/admin/contacts', auth, (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// ── Admin Products ──
+app.get('/api/admin/products', auth, authRateLimit(), (req, res) => {
+  try {
+    const prods = require('./products.json');
+    res.json({ products: prods });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/admin/products', auth, authRateLimit(), (req, res) => {
+  try {
+    const { id, name, desc, monthly, yearly, price, prefix, type } = req.body;
+    if (!id || !name) return res.status(400).json({ error: 'id و name مطلوبان' });
+    const prods = require('./products.json');
+    const idx = prods.findIndex(p => p.id === id);
+    const entry = { id, name, desc: desc || '', monthly, yearly, price, prefix: prefix || id.toUpperCase().replace(/-/g, '').substring(0, 10), type: type || 'main' };
+    if (idx >= 0) prods[idx] = entry; else prods.push(entry);
+    require('fs').writeFileSync(require('path').join(__dirname, 'products.json'), JSON.stringify(prods, null, 2));
+    log(`Product ${idx >= 0 ? 'updated' : 'added'}: ${id}`);
+    res.json({ success: true, product: entry });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/admin/products/:id', auth, authRateLimit(), (req, res) => {
+  try {
+    const id = req.params.id;
+    const prods = require('./products.json');
+    const idx = prods.findIndex(p => p.id === id);
+    if (idx < 0) return res.status(404).json({ error: 'المنتج غير موجود' });
+    prods.splice(idx, 1);
+    require('fs').writeFileSync(require('path').join(__dirname, 'products.json'), JSON.stringify(prods, null, 2));
+    log(`Product deleted: ${id}`);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ==== Telegram Webhook proxy ====
+app.post('/webhook', (req, res) => {
+  // When bot.js is in webhook mode, this forwards updates
+  // If bot.js is in polling mode, this is a no-op
+  const body = req.body;
+  if (body && body.message) {
+    log(`Webhook received: ${body.message.text ? body.message.text.substring(0, 50) : '(non-text)'}`);
+  }
+  res.sendStatus(200);
 });
 
 // ==== Health check (no auth) ====

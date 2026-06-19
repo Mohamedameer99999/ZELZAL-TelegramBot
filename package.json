@@ -8,6 +8,7 @@
   },
   "scripts": {
     "start": "node start.js",
+    "test": "node tests/run.js",
     "install-service": "nssm install ZELZAL-TelegramBot \"C:\\Program Files\\nodejs\\node.exe\" \"F:\\zelzal prog-AI\\Telegram-Bot\\bot.js\"",
     "railway": "node start.js"
   },
@@ -19,6 +20,7 @@
     "node-telegram-bot-api": "^0.66.0",
     "nodemailer": "^9.0.0",
     "openai": "^6.43.0",
+    "pdfkit": "^0.19.1",
     "rss-parser": "^3.13.0"
   }
 }

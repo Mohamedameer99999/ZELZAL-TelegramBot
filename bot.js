@@ -42,17 +42,32 @@ if (!token || token === 'YOUR_BOT_TOKEN_HERE') {
   process.exit(1);
 }
 
-const bot = new TelegramBot(token, { polling: true });
+const WEBHOOK_URL = process.env.WEBHOOK_URL || '';
+let bot;
 
-// Handle 409 Conflict gracefully - restart on next cycle
-bot.on('polling_error', (err) => {
-  if (err && err.code === 'ETELEGRAM' && err.response && err.response.statusCode === 409) {
-    console.error('[BOT] 409 Conflict detected. Restarting in 5s...');
-    setTimeout(() => {
-      process.exit(0);
-    }, 5000);
-  }
-});
+if (WEBHOOK_URL) {
+  const express = require('express');
+  const webhookApp = express();
+  webhookApp.use(express.json());
+  bot = new TelegramBot(token);
+  const WEBHOOK_PORT = parseInt(process.env.WEBHOOK_PORT || '3457');
+  webhookApp.post('/webhook', (req, res) => {
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
+  });
+  webhookApp.listen(WEBHOOK_PORT, () => {
+    console.log(`[BOT] Webhook mode on port ${WEBHOOK_PORT}`);
+    bot.setWebHook(`${WEBHOOK_URL}/webhook`);
+  });
+} else {
+  bot = new TelegramBot(token, { polling: true });
+  bot.on('polling_error', (err) => {
+    if (err && err.code === 'ETELEGRAM' && err.response && err.response.statusCode === 409) {
+      console.error('[BOT] 409 Conflict detected. Restarting in 5s...');
+      setTimeout(() => process.exit(0), 5000);
+    }
+  });
+}
 
 const CHANNEL_USERNAME = (config.channel || '@ZELZAL_Security').replace('@', '');
 const REMOTE_PORT = config.remote_port || 3456;
@@ -1448,6 +1463,17 @@ bot.onText(/\/payment\s+(\S+)\s+(\d+)?/, async (msg, match) => {
         payment_method: 'vodafone_cash', last_payment_ref: ref,
         created_at: now.toISOString(), updated_at: now.toISOString()
       });
+
+      // Generate invoice
+      try {
+        const invoice = require('./invoice.js');
+        const result = await invoice.createInvoice({ ...payment, customer_name: payment.phone || '' }, licenseKey);
+        // Send invoice to admin
+        const invoicePath = result.filePath;
+        if (fs.existsSync(invoicePath)) {
+          try { await bot.sendDocument(msg.chat.id, invoicePath, { caption: `📄 فاتورة #${result.invoiceNum}` }); } catch {}
+        }
+      } catch (e) { console.error('[INVOICE]', e.message); }
 
       // Send license to user
       const user = db.getUser(payment.user_id);
