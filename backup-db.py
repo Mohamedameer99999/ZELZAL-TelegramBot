@@ -13,6 +13,7 @@ import gzip
 import json
 import sqlite3
 import requests
+import platform
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -157,8 +158,10 @@ def upload_to_drive(timestamp):
         print("[DRIVE] Run setup-all.bat to configure rclone and Google Drive")
         return False
 
-    # Check if Google Drive config exists
-    config_path = Path.home() / ".config" / "rclone" / "rclone.conf"
+    # Check if Google Drive config exists (Windows or Linux path)
+    config_path = Path(os.environ.get('APPDATA', '')) / "rclone" / "rclone.conf"
+    if not config_path.exists():
+        config_path = Path.home() / ".config" / "rclone" / "rclone.conf"
     if not config_path.exists():
         print("[DRIVE] rclone config not found — skipping Drive upload")
         print("[DRIVE] Run setup-all.bat to configure Google Drive")
@@ -168,27 +171,31 @@ def upload_to_drive(timestamp):
     db_gz = Path(BACKUP_DIR) / f"zelzal_{timestamp}.db.gz"
     code_dir = Path(BACKUP_DIR) / "code"
     uploaded = 0
+    import subprocess
+
+    def rclone_copy(src, dest):
+        try:
+            result = subprocess.run([str(rclone), "copy", str(src), str(dest)], capture_output=True, timeout=30)
+            return result.returncode == 0
+        except:
+            return False
 
     if db_gz.exists():
-        r = os.system(f'"{rclone}" copy "{db_gz}" "{remote}/" 2>nul')
-        if r == 0:
+        if rclone_copy(db_gz, f"{remote}/"):
             print(f"[DRIVE] Uploaded: {db_gz.name}")
             uploaded += 1
         else:
-            print(f"[DRIVE] Upload failed for {db_gz.name} (check rclone config)")
+            print(f"[DRIVE] Upload failed for {db_gz.name}")
 
     if code_dir.exists():
         for f in sorted(code_dir.glob(f"*_{timestamp}.*")):
-            r = os.system(f'"{rclone}" copy "{f}" "{remote}/" 2>nul')
-            if r == 0:
+            if rclone_copy(f, f"{remote}/"):
                 print(f"[DRIVE] Uploaded: {f.name}")
                 uploaded += 1
 
     if uploaded:
         print(f"[DRIVE] Uploaded {uploaded} file(s)")
-        # Clean old backups (keep last 30)
-        cutoff = (datetime.now() - timedelta(days=KEEP_DAYS)).strftime("%Y-%m-%d")
-        os.system(f'"{rclone}" delete --min-age {KEEP_DAYS}d "{remote}" 2>nul')
+        subprocess.run([str(rclone), "delete", "--min-age", f"{KEEP_DAYS}d", remote], capture_output=True, timeout=30)
         return True
     print("[DRIVE] No files uploaded")
     return False
