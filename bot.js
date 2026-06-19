@@ -433,6 +433,11 @@ bot.on('message', async (msg) => {
     }
   }
 
+  // Save receipt + ask for product
+  if (msg.photo && !isReceipt && !caption.includes('ايصال')) {
+    // Just acknowledge photo without triggering anything
+  }
+
   // Catch-all: admin sends normal text → auto-executor → queue (auto-responder picks up)
   if (text && !text.startsWith('/') && config.admin_ids.includes(msg.from.id)) {
     const aeResult = await autoExec.autoExecute(text);
@@ -1072,7 +1077,9 @@ bot.onText(/\/help/, (msg) => {
     '📊 `/channel_stats` — إحصائيات القناة\n' +
     '📢 `/announce` — نشر إعلان منتج\n' +
     '📧 `/send_email` — إرسال إيميل تفعيل\n' +
-    '🛠️ `/tools` — إدارة أدوات القناة\n\n' +
+    '🛠️ `/tools` — إدارة أدوات القناة\n' +
+    '🧹 `/cleanup` — تنظيف قاعدة البيانات\n' +
+    '📦 `/create_order` — إنشاء طلب شراء (آدمن)\n\n' +
     '📋 *الاشتراكات:*\n' +
     '📋 `/mysubs` — اشتراكاتي\n' +
     '📊 `/sub_stats` — إحصائيات الاشتراكات\n' +
@@ -1408,7 +1415,63 @@ bot.onText(/\/payment\s+(\S+)\s+(\d+)?/, async (msg, match) => {
   );
 
   const payment = db.getPayment(ref);
-  if (payment && payment.subscription_id) {
+  if (!payment) return;
+
+  // Auto-generate license for new purchases (when no subscription_id)
+  if (!payment.subscription_id && payment.product_id && payment.user_id) {
+    const product = products.find(p => p.id === payment.product_id);
+    if (product) {
+      const planType = payment.notes && payment.notes.includes('yearly') ? 'yearly' : 'monthly';
+      const licenseKey = generateLicenseKey(product);
+      const parts = licenseKey.split('-');
+      const sig = parts.pop();
+      const now = new Date();
+      let expiresAt = null;
+      if (planType === 'monthly') expiresAt = new Date(now.getTime() + 30 * 86400000).toISOString();
+      else if (planType === 'yearly') expiresAt = new Date(now.getTime() + 365 * 86400000).toISOString();
+
+      db.addLicense({
+        license_key: licenseKey, hmac_signature: sig,
+        telegram_id: payment.user_id, customer_name: payment.phone || '',
+        phone: payment.phone || '', email: '', product: product.id,
+        plan_type: planType, status: 'active',
+        created_at: now.toISOString(), expires_at: expiresAt,
+        activated_at: now.toISOString(), payment_date: now.toISOString().split('T')[0], notes: ''
+      });
+
+      // Create subscription
+      const subEnd = expiresAt || new Date(now.getTime() + 36500 * 86400000).toISOString();
+      db.addSubscription({
+        user_id: payment.user_id, product_id: product.id, plan_type: planType,
+        status: 'active', current_period_start: now.toISOString(),
+        current_period_end: subEnd, auto_renew: 1,
+        payment_method: 'vodafone_cash', last_payment_ref: ref,
+        created_at: now.toISOString(), updated_at: now.toISOString()
+      });
+
+      // Send license to user
+      const user = db.getUser(payment.user_id);
+      if (user) {
+        const msgText =
+          `✅ *تم تفعيل طلبك!*\n\n` +
+          `📦 المنتج: ${product.name}\n` +
+          `🔑 مفتاح الترخيص:\n\`${licenseKey}\`\n` +
+          `⏳ ${planType === 'lifetime' ? 'مدى الحياة' : 'ينتهي: ' + (expiresAt ? expiresAt.split('T')[0] : '')}\n\n` +
+          `📥 رابط التحميل: ${config.website}\n` +
+          `📞 للدعم: ${config.whatsapp}`;
+        try {
+          await bot.sendMessage(payment.user_id, msgText, { parse_mode: 'Markdown' });
+          bot.sendMessage(msg.chat.id, `✅ تم إرسال الترخيص للمستخدم #${payment.user_id}`);
+        } catch (e) {
+          bot.sendMessage(msg.chat.id, `⚠️ المفتاح اتولد بس ما وصلش للمستخدم: ${e.message}\n\n\`${licenseKey}\``, { parse_mode: 'Markdown' });
+        }
+      }
+    }
+    return;
+  }
+
+  // Renewal flow
+  if (payment.subscription_id) {
     const result = await subManager.processRenewal(payment.subscription_id);
     if (result.success) {
       bot.sendMessage(msg.chat.id,
@@ -1417,6 +1480,73 @@ bot.onText(/\/payment\s+(\S+)\s+(\d+)?/, async (msg, match) => {
       );
     }
   }
+});
+
+// /create_order <user_id> <product_id> <plan> [amount] — new purchase order
+bot.onText(/\/create_order(?:\s+(.+))?/, async (msg, match) => {
+  if (!isAdmin(msg.from.id)) return;
+  const args = (match[1] || '').trim().split(/\s+/);
+  if (args.length < 3) {
+    let text = '📦 *إنشاء طلب شراء جديد*\n\n';
+    text += '`/create_order <user_id> <product_id> <plan> [amount]`\n\n';
+    text += '*المنتجات:*\n';
+    products.forEach(p => { text += `  \`${p.id}\` — ${p.name}\n`; });
+    text += '\n*الخطط:* `monthly`, `yearly`, `lifetime`';
+    return bot.sendMessage(msg.chat.id, text, { parse_mode: 'Markdown' });
+  }
+  const userId = parseInt(args[0]);
+  const productId = args[1];
+  const plan = args[2].toLowerCase();
+  const amount = args[3] ? parseInt(args[3]) : 0;
+
+  const product = products.find(p => p.id === productId);
+  if (!product) return bot.sendMessage(msg.chat.id, '❌ منتج غير معروف');
+  if (!['monthly', 'yearly', 'lifetime'].includes(plan)) {
+    return bot.sendMessage(msg.chat.id, '❌ خطة غير صحيحة');
+  }
+
+  // Calculate price
+  let price = amount;
+  if (!price) {
+    if (plan === 'monthly') price = parseInt(product.monthly) || 0;
+    else if (plan === 'yearly') price = parseInt(product.yearly) || 0;
+    else price = parseInt(product.price) || 0;
+  }
+
+  const paymentRef = 'ORD_' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 5).toUpperCase();
+  db.addPayment({
+    subscription_id: null, user_id: userId,
+    product_id: productId, amount: price,
+    currency: 'EGP', payment_method: 'vodafone_cash',
+    payment_ref: paymentRef, status: 'pending',
+    phone: '', notes: 'manual_order_' + plan,
+    created_at: new Date().toISOString()
+  });
+
+  bot.sendMessage(msg.chat.id,
+    `✅ *تم إنشاء الطلب!*\n\n` +
+    `👤 المستخدم: \`${userId}\`\n` +
+    `📦 المنتج: ${product.name}\n` +
+    `📆 الخطة: ${plan}\n` +
+    `💰 المبلغ: ${price} ج\n` +
+    `🆔 المرجع: \`${paymentRef}\`\n\n` +
+    `💡 لتأكيد الدفع:\n/payment ${paymentRef} ${price}`,
+    { parse_mode: 'Markdown' }
+  );
+
+  // Notify user
+  try {
+    await bot.sendMessage(userId,
+      `📦 *تم إنشاء طلبك!*\n\n` +
+      `المنتج: ${product.name}\n` +
+      `الخطة: ${plan}\n` +
+      `💰 المبلغ: ${price} ج\n` +
+      `📌 المرجع: \`${paymentRef}\`\n\n` +
+      `📞 بعد الدفع أرسل الإيصال هنا\n` +
+      `💳 فودافون كاش: ${config.payment_phone}`,
+      { parse_mode: 'Markdown' }
+    );
+  } catch {}
 });
 
 // ══════════════════════════════════════════════
@@ -1747,6 +1877,52 @@ bot.onText(/\/dashboard/, async (msg) => {
   };
   bot.sendMessage(msg.chat.id, text, { parse_mode: 'Markdown', ...dashKeyboard });
 });
+
+// ══════════════════════════════════════════════
+//                  CLEANUP
+// ══════════════════════════════════════════════
+
+bot.onText(/\/cleanup/, (msg) => {
+  if (!isAdmin(msg.from.id)) return;
+  bot.sendMessage(msg.chat.id, '🧹 *جاري التنظيف...*', { parse_mode: 'Markdown' }).then(m => {
+    const dbc = db.get();
+    let deleted = { tickets: 0, oldCommands: 0 };
+
+    // Delete closed tickets older than 30 days
+    const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+    const oldTickets = dbc.prepare("SELECT id FROM tickets WHERE status = 'closed' AND closed_at <= ?").all(monthAgo);
+    const delTickets = dbc.prepare("DELETE FROM tickets WHERE status = 'closed' AND closed_at <= ?");
+    deleted.tickets = delTickets.run(monthAgo).changes;
+
+    // Delete old done commands (older than 7 days)
+    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+    const delCmds = dbc.prepare("DELETE FROM commands WHERE created_at <= ?");
+    deleted.oldCommands = delCmds.run(weekAgo).changes;
+
+    // Delete old contacts read (older than 60 days)
+    const twoMonthsAgo = new Date(Date.now() - 60 * 86400000).toISOString();
+    const delContacts = dbc.prepare("DELETE FROM contacts WHERE read_status = 1 AND created_at <= ?");
+    deleted.oldContacts = delContacts.run(twoMonthsAgo).changes;
+
+    // Cleanup notification/seen sets to free memory
+    if (typeof notifiedExpiring !== 'undefined') notifiedExpiring.clear();
+    if (typeof notifiedExpired !== 'undefined') notifiedExpired.clear();
+    if (typeof notifiedGrace !== 'undefined') notifiedGrace.clear();
+
+    bot.editMessageText(
+      `🧹 *تم التنظيف!*\n\n` +
+      `🎫 تذاكر قديمة: ${deleted.tickets}\n` +
+      `📝 أوامر قديمة: ${deleted.oldCommands}\n` +
+      `✉️ رسائل مقروءة: ${deleted.oldContacts || 0}\n\n` +
+      `💾 المساحة: ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1)} MB`,
+      { chat_id: msg.chat.id, message_id: m.message_id, parse_mode: 'Markdown' }
+    ).catch(() => {});
+  });
+});
+
+// /help update — add /buy and /cleanup to help
+const originalHelp = bot._events['text']?.find(l => l.toString().includes('/help'));
+// (Help already updated via /help handler text)
 
 // Start all channel tools on boot
 newsAggregator.start(bot);

@@ -1,77 +1,74 @@
 [
   {
-    "id": "cybershield",
-    "name": "🛡️ CYBER SHIELD v5.0.0",
-    "desc": "حماية متكاملة: فحص ثغرات، جدار ناري، مكافحة فيروسات، مراقبة شبكة، كشف اقتحام",
+    "id": "zelzal-pro",
+    "name": "🛡️ ZELZAL PRO v3.0",
+    "desc": "حزمة حماية متكاملة: جدار ناري،Anti-Virus، كشف اقتحام، VPN مدمج، تصيد، تشفير",
+    "monthly": "300 ج",
+    "yearly": "2500 ج",
+    "prefix": "ZELZALPRO",
+    "type": "main"
+  },
+  {
+    "id": "pentest-suite",
+    "name": "💥 Pentest Suite v2.1",
+    "desc": "مجموعة أدوات اختبار اختراق: Nmap, Metasploit, Wireshark, Burp Suite, SQLMap",
+    "monthly": "400 ج",
+    "yearly": "3500 ج",
+    "prefix": "PENTEST",
+    "type": "main"
+  },
+  {
+    "id": "vpn-secure",
+    "name": "🔒 VPN Secure v1.5",
+    "desc": "VPN مشفر بالكامل، إخفاء الهوية،跨越 الجغرافي، Kill Switch، 5 بروتوكولات",
+    "monthly": "150 ج",
+    "yearly": "1200 ج",
+    "prefix": "VPNSECURE",
+    "type": "main"
+  },
+  {
+    "id": "network-defender",
+    "name": "📡 Network Defender v2.0",
+    "desc": "مراقبة الشبكة، كشف المتطفلين، تحليل الحزم، IDS/IPS، إنذار فوري",
+    "monthly": "250 ج",
+    "yearly": "2000 ج",
+    "prefix": "NETDEFENDER",
+    "type": "main"
+  },
+  {
+    "id": "anti-ransomware",
+    "name": "🔐 Anti-Ransomware v1.0",
+    "desc": "حماية من هجمات الفدية، كشف السلوك الشاذ، نسخ احتياطي ذكي، استعادة الملفات",
     "monthly": "200 ج",
     "yearly": "1500 ج",
-    "prefix": "CYBERSHIELD",
+    "prefix": "ANTIRANSOM",
     "type": "main"
   },
   {
-    "id": "netguard",
-    "name": "📡 NetGuard Monitor v1.2.0",
-    "desc": "مراقبة الأجهزة المتصلة بالشبكة وتحليل الـ bandwidth",
-    "monthly": "150 ج",
-    "yearly": "1000 ج",
-    "prefix": "NETGUARD",
+    "id": "exam-scanner",
+    "name": "📸 Exam Scanner v2.0",
+    "desc": "مسح بايثون لأنظمة اللجان الإلكترونية المختلفة (بالتحديث المستمر)",
+    "monthly": "500 ج",
+    "yearly": "4000 ج",
+    "prefix": "EXAMSCAN",
     "type": "main"
   },
   {
-    "id": "filevault",
-    "name": "🔐 File Vault v1.0.0",
-    "desc": "تشفير الملفات والمجلدات وحذف آمن",
-    "monthly": "100 ج",
-    "yearly": "700 ج",
-    "prefix": "FILEVAULT",
+    "id": "android-analyzer",
+    "name": "📱 Android Analyzer v1.2",
+    "desc": "تحليل تطبيقات أندرويد، فحص ثغرات، هندسة عكسية، فك تشفير",
+    "monthly": "350 ج",
+    "yearly": "3000 ج",
+    "prefix": "ANDROIDAN",
     "type": "main"
   },
   {
-    "id": "wifi",
-    "name": "📶 Wi-Fi Inspector v1.0.0",
-    "desc": "فحص شبكات الواي فاي وكشف المتطفلين والمخترقين",
-    "monthly": "100 ج",
-    "yearly": "700 ج",
-    "prefix": "WIFIINSPECTOR",
+    "id": "osint-pro",
+    "name": "🌐 OSINT Pro v1.0",
+    "desc": "استخبارات المصادر المفتوحة: تتبع، تحليل مواقع، بحث في القواعد البيانات، سوشيال ميديا",
+    "monthly": "250 ج",
+    "yearly": "2000 ج",
+    "prefix": "OSINTPRO",
     "type": "main"
-  },
-  {
-    "id": "usb",
-    "name": "🔌 USB Guardian v1.0.0",
-    "desc": "التحكم بمنافذ USB ومنع الاختراق عبر الفلاشة",
-    "monthly": "100 ج",
-    "yearly": "700 ج",
-    "prefix": "USBGUARDIAN",
-    "type": "main"
-  },
-  {
-    "id": "systemcleaner",
-    "name": "🧹 System Cleaner v1.0.0",
-    "desc": "تنظيف ملفات Temp و Cache و Prefetch و DNS",
-    "monthly": null,
-    "yearly": null,
-    "price": "100 ج",
-    "prefix": "SYSTEMCLEANER",
-    "type": "tool"
-  },
-  {
-    "id": "duplicatefinder",
-    "name": "📂 Duplicate Finder v1.0.0",
-    "desc": "كشف وحذف الملفات المكررة بالاسم أو البصمة",
-    "monthly": null,
-    "yearly": null,
-    "price": "100 ج",
-    "prefix": "DUPLICATEFINDER",
-    "type": "tool"
-  },
-  {
-    "id": "fileshredder",
-    "name": "🗑️ File Shredder v1.0.0",
-    "desc": "تمزيق آمن للملفات (DoD 5220.22-M)",
-    "monthly": null,
-    "yearly": null,
-    "price": "100 ج",
-    "prefix": "FILESHREDDER",
-    "type": "tool"
   }
 ]

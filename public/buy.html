@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ZELZAL — شراء منتجات الأمن السيبراني</title>
+<meta name="description" content="اشترِ منتجات أمن سيبراني من ZELZAL: حماية، اختبار اختراق، VPN، تشفير، والمزيد. دفع عبر فودافون كاش.">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>⚡</text></svg>">
+<script src="api.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:#0a0a15;color:#fff;min-height:100vh;direction:rtl}
+.container{max-width:900px;margin:0 auto;padding:20px}
+.header{text-align:center;padding:30px 0 20px}
+.header h1{font-size:28px;background:linear-gradient(135deg,#00f5a0,#00d9f5);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header p{color:#889;font-size:14px;margin-top:8px}
+.steps{display:flex;justify-content:center;gap:10px;margin-bottom:30px;flex-wrap:wrap}
+.step{padding:8px 16px;background:#111122;border-radius:8px;border:1px solid #ffffff0a;font-size:13px;color:#889}
+.step.active{background:#00f5a015;border-color:#00f5a0;color:#00f5a0}
+.step .num{display:inline-flex;width:22px;height:22px;border-radius:50%;background:#ffffff0a;align-items:center;justify-content:center;font-size:11px;margin-left:6px}
+.step.active .num{background:#00f5a0;color:#0a0a15}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:15px;margin-bottom:25px}
+.card{background:#111122;border-radius:12px;padding:20px;border:1px solid #ffffff0a;cursor:pointer;transition:all .3s}
+.card:hover{border-color:#00f5a033;transform:translateY(-2px)}
+.card.selected{border-color:#00f5a0;background:#00f5a008;box-shadow:0 0 20px #00f5a015}
+.card h3{font-size:15px;margin-bottom:6px}
+.card .desc{color:#889;font-size:12px;margin-bottom:10px;line-height:1.5}
+.card .price{font-size:18px;font-weight:700;background:linear-gradient(135deg,#00f5a0,#00d9f5);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.card .price small{font-size:12px;color:#889;-webkit-text-fill-color:#889}
+.form-section{background:#111122;border-radius:12px;padding:25px;border:1px solid #ffffff0a;margin-bottom:25px;display:none}
+.form-section.active{display:block}
+.form-section h2{font-size:16px;margin-bottom:15px}
+.form-group{margin-bottom:15px}
+.form-group label{display:block;font-size:13px;color:#889;margin-bottom:5px}
+.form-group input,.form-group select{width:100%;padding:11px 14px;background:#0a0a15;border:1px solid #ffffff15;border-radius:8px;color:#fff;font-size:14px}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:#00f5a0}
+.form-group select option{background:#111122}
+.btn{padding:12px 30px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;border:none;transition:all .3s;width:100%;justify-content:center;display:flex}
+.btn-primary{background:linear-gradient(135deg,#00f5a0,#00d9f5);color:#0a0a15}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 25px #00f5a033}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.result-box{background:#111122;border-radius:12px;padding:25px;border:1px solid #00f5a033;text-align:center;display:none}
+.result-box.success{display:block}
+.result-box h3{color:#00f5a0;font-size:18px;margin-bottom:10px}
+.result-box p{color:#889;font-size:14px;line-height:1.8}
+.result-box .ref{background:#0a0a15;padding:10px;border-radius:8px;font-family:monospace;font-size:13px;margin:15px 0;color:#00f5a0}
+.payment-info{background:#ffaa0008;border:1px solid #ffaa0033;border-radius:8px;padding:15px;margin:15px 0;text-align:center}
+.payment-info .phone{font-size:22px;font-weight:700;color:#ffaa00;letter-spacing:2px}
+.error-msg{color:#ff4444;font-size:13px;text-align:center;margin-top:10px;display:none}
+.loading{text-align:center;color:#889;padding:20px;display:none}
+.spinner{width:24px;height:24px;border:3px solid #ffffff0a;border-top-color:#00f5a0;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:600px){
+  .grid{grid-template-columns:1fr}
+  .header h1{font-size:22px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<h1>⚡ ZELZAL SECURITY</h1>
+<p>اشترِ منتجات الأمن السيبراني بأمان</p>
+</div>
+
+<div class="steps">
+<div class="step active" id="step1"><span class="num">1</span> اختر المنتج</div>
+<div class="step" id="step2"><span class="num">2</span> بياناتك</div>
+<div class="step" id="step3"><span class="num">3</span> الدفع</div>
+</div>
+
+<div class="grid" id="productsGrid"></div>
+
+<div class="form-section" id="formSection">
+<h2>📝 أدخل بياناتك</h2>
+<div class="form-group">
+<label>الاسم كامل *</label>
+<input type="text" id="buyerName" placeholder="مثلاً: أحمد محمد">
+</div>
+<div class="form-group">
+<label>رقم الهاتف *</label>
+<input type="tel" id="buyerPhone" placeholder="01012345678">
+</div>
+<div class="form-group">
+<label>البريد الإلكتروني (اختياري)</label>
+<input type="email" id="buyerEmail" placeholder="example@email.com">
+</div>
+<div class="form-group">
+<label>الخطة</label>
+<select id="planSelect"></select>
+</div>
+<div id="priceDisplay" style="text-align:center;font-size:20px;font-weight:700;margin:15px 0;color:#00f5a0"></div>
+<button class="btn btn-primary" id="submitBtn" onclick="submitOrder()">💳 تقديم الطلب</button>
+<div class="error-msg" id="errorMsg"></div>
+<div class="loading" id="loading"><div class="spinner"></div>جاري تجهيز طلبك...</div>
+</div>
+
+<div class="result-box" id="resultBox">
+<h3>✅ تم استلام طلبك!</h3>
+<p>شكراً لاختيارك ZELZAL Security 🎉</p>
+<div class="ref" id="orderRef"></div>
+<div class="payment-info">
+<p>💰 المبلغ المطلوب:</p>
+<div style="font-size:28px;font-weight:800;color:#00f5a0" id="orderAmount"></div>
+<p style="margin-top:10px">📱 حول المبلغ على فودافون كاش:</p>
+<div class="phone" id="paymentPhone">01034085168</div>
+<p style="margin-top:10px;font-size:13px;color:#667">بعد التحويل، أرسل الإيصال عالبوت أو واتساب</p>
+</div>
+<p style="font-size:13px;color:#667">📞 واتساب: <a href="https://wa.me/201034085168" style="color:#00f5a0">01034085168</a></p>
+<p style="margin-top:10px"><a href="/" style="color:#889">← العودة للرئيسية</a></p>
+</div>
+</div>
+
+<script>
+const products = [];
+
+async function loadProducts() {
+  try {
+    const r = await fetch('/api/public-stats');
+  } catch {}
+  // Load from hardcoded list since we don't have a products API endpoint
+  const hardcoded = [
+    {id:"zelzal-pro",name:"🛡️ ZELZAL PRO v3.0",desc:"حزمة حماية متكاملة: جدار ناري،Anti-Virus، كشف اقتحام، VPN مدمج",monthly:300,yearly:2500,type:"main"},
+    {id:"pentest-suite",name:"💥 Pentest Suite v2.1",desc:"أدوات اختبار اختراق: Nmap, Metasploit, Wireshark, Burp Suite",monthly:400,yearly:3500,type:"main"},
+    {id:"vpn-secure",name:"🔒 VPN Secure v1.5",desc:"VPN مشفر، إخفاء الهوية، 5 بروتوكولات، Kill Switch",monthly:150,yearly:1200,type:"main"},
+    {id:"network-defender",name:"📡 Network Defender v2.0",desc:"مراقبة الشبكة، IDS/IPS، كشف المتطفلين، إنذار فوري",monthly:250,yearly:2000,type:"main"},
+    {id:"anti-ransomware",name:"🔐 Anti-Ransomware v1.0",desc:"حماية من الفدية، كشف سلوك شاذ، استعادة ملفات",monthly:200,yearly:1500,type:"main"},
+    {id:"exam-scanner",name:"📸 Exam Scanner v2.0",desc:"مسح بايثون لأنظمة اللجان الإلكترونية (بالتحديث المستمر)",monthly:500,yearly:4000,type:"main"},
+    {id:"android-analyzer",name:"📱 Android Analyzer v1.2",desc:"تحليل تطبيقات، فحص ثغرات، هندسة عكسية",monthly:350,yearly:3000,type:"main"},
+    {id:"osint-pro",name:"🌐 OSINT Pro v1.0",desc:"استخبارات مصادر مفتوحة: تتبع، تحليل، بحث",monthly:250,yearly:2000,type:"main"}
+  ];
+  products.push(...hardcoded);
+  renderProducts();
+}
+
+function renderProducts() {
+  const grid = document.getElementById('productsGrid');
+  grid.innerHTML = products.map(p => `
+    <div class="card" onclick="selectProduct('${p.id}')" id="card-${p.id}">
+      <h3>${p.name}</h3>
+      <div class="desc">${p.desc}</div>
+      <div class="price">${p.monthly} ج <small>/ شهري</small></div>
+      <div style="color:#889;font-size:12px">أو ${p.yearly} ج / سنوي (وفر ${Math.round((1-p.yearly/(p.monthly*12))*100)}%)</div>
+    </div>
+  `).join('');
+}
+
+let selectedProduct = null;
+let selectedPlan = 'monthly';
+
+function selectProduct(id) {
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('card-' + id).classList.add('selected');
+  selectedProduct = products.find(p => p.id === id);
+  document.getElementById('step1').classList.remove('active');
+  document.getElementById('step2').classList.add('active');
+  document.getElementById('formSection').classList.add('active');
+  updatePlanOptions();
+}
+
+function updatePlanOptions() {
+  const sel = document.getElementById('planSelect');
+  if (!selectedProduct) return;
+  sel.innerHTML = `
+    <option value="monthly">شهري — ${selectedProduct.monthly} ج/شهر</option>
+    <option value="yearly">سنوي — ${selectedProduct.yearly} ج/سنة (وفر ${Math.round((1-selectedProduct.yearly/(selectedProduct.monthly*12))*100)}%)</option>
+  `;
+  sel.onchange = () => { selectedPlan = sel.value; updatePrice(); };
+  updatePrice();
+}
+
+function updatePrice() {
+  const p = selectedProduct;
+  const price = selectedPlan === 'monthly' ? p.monthly : p.yearly;
+  document.getElementById('priceDisplay').innerHTML = `💰 ${price} ج <span style="font-size:14px;color:#889">${selectedPlan === 'monthly' ? 'شهرياً' : 'سنوياً'}</span>`;
+}
+
+async function submitOrder() {
+  const name = document.getElementById('buyerName').value.trim();
+  const phone = document.getElementById('buyerPhone').value.trim();
+  if (!name || !phone) { showError('الاسم والهاتف مطلوبان'); return; }
+  if (!selectedProduct) { showError('اختر منتج أولاً'); return; }
+
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('errorMsg').style.display = 'none';
+
+  try {
+    const r = await fetch('/api/contact', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name: name + ' (طلب: ' + selectedProduct.name + ' - ' + selectedPlan + ')',
+        phone: phone,
+        message: 'طلب شراء: ' + selectedProduct.name + ' | الخطة: ' + selectedPlan + ' | السعر: ' + (selectedPlan === 'monthly' ? selectedProduct.monthly : selectedProduct.yearly) + ' ج'
+      })
+    });
+    const data = await r.json();
+    document.getElementById('formSection').classList.remove('active');
+    document.getElementById('step2').classList.remove('active');
+    document.getElementById('step3').classList.add('active');
+    document.getElementById('resultBox').classList.add('success');
+    document.getElementById('orderRef').textContent = 'مرجع الطلب: #' + data.id;
+    document.getElementById('orderAmount').textContent = (selectedPlan === 'monthly' ? selectedProduct.monthly : selectedProduct.yearly) + ' ج';
+    document.getElementById('paymentPhone').textContent = '01034085168';
+  } catch(e) {
+    showError('فشل إرسال الطلب. حاول مرة أخرى.');
+    document.getElementById('submitBtn').disabled = false;
+  }
+  document.getElementById('loading').style.display = 'none';
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+
+loadProducts();
+</script>
+</body>
+</html>

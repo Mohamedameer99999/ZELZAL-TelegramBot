@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
 <title>ZELZAL — لوحة التحكم</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>⚡</text></svg>">
 <script src="api.js"></script>
@@ -64,6 +65,7 @@ tr:hover td{background:#ffffff05}
   .dashboard{padding:10px}
   .header{flex-direction:column;gap:10px;text-align:center}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .charts-row{grid-template-columns:1fr!important}
   table{font-size:12px}
   th,td{padding:8px 10px}
 }
@@ -111,14 +113,17 @@ tr:hover td{background:#ffffff05}
 <div class="stat-card"><div class="num" id="sContacts">0</div><div class="label">رسائل غير مقروءة</div></div>
 </div>
 
+<div class="charts-row" style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:25px">
 <div class="table-wrap">
 <h3>📈 المبيعات حسب المنتج</h3>
-<div id="salesByProduct"><div class="loading">جاري التحميل...</div></div>
+<canvas id="salesChart" height="200" style="padding:15px"></canvas>
+<div id="salesByProduct" style="padding:0 15px 15px"></div>
 </div>
-
 <div class="table-wrap">
 <h3>📅 الإيرادات الشهرية</h3>
-<div id="monthlyRevenue"><div class="loading">جاري التحميل...</div></div>
+<canvas id="revenueChart" height="200" style="padding:15px"></canvas>
+<div id="monthlyRevenue" style="padding:0 15px 15px"></div>
+</div>
 </div>
 </div>
 
@@ -226,7 +231,11 @@ async function loadDashboard() {
       sbp.innerHTML = '<table><thead><tr><th>المنتج</th><th>عدد التراخيص</th></tr></thead><tbody>' +
         stats.salesByProduct.map(p => '<tr><td>' + (p.product || 'غير معروف') + '</td><td>' + num(p.count) + '</td></tr>').join('') +
         '</tbody></table>';
-    } else { sbp.innerHTML = '<div class="empty">لا توجد مبيعات بعد</div>'; }
+      drawSalesChart(stats.salesByProduct);
+    } else {
+      sbp.innerHTML = '<div class="empty">لا توجد مبيعات بعد</div>';
+      clearCanvas('salesChart');
+    }
 
     // Monthly revenue
     const mr = document.getElementById('monthlyRevenue');
@@ -234,7 +243,11 @@ async function loadDashboard() {
       mr.innerHTML = '<table><thead><tr><th>الشهر</th><th>الإيرادات</th><th>عدد المعاملات</th></tr></thead><tbody>' +
         stats.monthlyRevenue.map(m => '<tr><td>' + (m.month || '') + '</td><td>' + num(m.revenue) + ' ج</td><td>' + num(m.count) + '</td></tr>').join('') +
         '</tbody></table>';
-    } else { mr.innerHTML = '<div class="empty">لا توجد إيرادات بعد</div>'; }
+      drawRevenueChart(stats.monthlyRevenue);
+    } else {
+      mr.innerHTML = '<div class="empty">لا توجد إيرادات بعد</div>';
+      clearCanvas('revenueChart');
+    }
   } catch (e) { console.error('Dashboard error:', e); }
 }
 
@@ -292,6 +305,87 @@ async function loadContacts() {
       data.contacts.map(c => '<tr style="' + (!c.read_status ? 'font-weight:bold' : '') + '"><td>' + (c.name || '') + '</td><td>' + (c.phone || '—') + '</td><td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (c.message || '') + '</td><td>' + (c.created_at ? new Date(c.created_at).toLocaleDateString('ar-EG') : '') + '</td></tr>').join('') +
       '</tbody></table>';
   } catch { document.getElementById('contactsTable').innerHTML = '<div class="empty">فشل التحميل</div>'; }
+}
+
+// ── Charts ──
+function clearCanvas(id) {
+  const c = document.getElementById(id); if (!c) return;
+  const ctx = c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
+}
+
+function drawSalesChart(data) {
+  const c = document.getElementById('salesChart'); if (!c) return;
+  c.width = c.offsetWidth * 2; c.height = 200;
+  const ctx = c.getContext('2d');
+  const w = c.width, h = c.height, pad = {top:20,bottom:40,left:10,right:10};
+  const chartW = w - pad.left - pad.right;
+  const chartH = h - pad.top - pad.bottom;
+  const max = Math.max(...data.map(d => d.count), 1);
+  const barW = Math.min(40, chartW / data.length * 0.6);
+  const gap = chartW / data.length;
+
+  ctx.clearRect(0,0,w,h);
+  data.forEach((d,i) => {
+    const x = pad.left + i * gap + (gap - barW)/2;
+    const barH = (d.count / max) * chartH;
+    const y = pad.top + chartH - barH;
+    const grad = ctx.createLinearGradient(x,y,x,pad.top+chartH);
+    grad.addColorStop(0,'#00f5a0'); grad.addColorStop(1,'#00d9f5');
+    ctx.fillStyle = grad;
+    roundRect(ctx, x, y, barW, barH, 4);
+    ctx.fill();
+    ctx.fillStyle = '#889';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(d.product ? d.product.substring(0,8) : '', x + barW/2, h - 8);
+    ctx.fillStyle = '#00f5a0';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText(d.count, x + barW/2, y - 5);
+  });
+}
+
+function drawRevenueChart(data) {
+  const c = document.getElementById('revenueChart'); if (!c) return;
+  c.width = c.offsetWidth * 2; c.height = 200;
+  const ctx = c.getContext('2d');
+  const w = c.width, h = c.height, pad = {top:20,bottom:40,left:10,right:10};
+  const chartW = w - pad.left - pad.right;
+  const chartH = h - pad.top - pad.bottom;
+  const max = Math.max(...data.map(d => d.revenue), 1);
+  const barW = Math.min(40, chartW / data.length * 0.6);
+  const gap = chartW / data.length;
+
+  ctx.clearRect(0,0,w,h);
+  data.forEach((d,i) => {
+    const x = pad.left + i * gap + (gap - barW)/2;
+    const barH = (d.revenue / max) * chartH;
+    const y = pad.top + chartH - barH;
+    const grad = ctx.createLinearGradient(x,y,x,pad.top+chartH);
+    grad.addColorStop(0,'#ffaa00'); grad.addColorStop(1,'#ff6600');
+    ctx.fillStyle = grad;
+    roundRect(ctx, x, y, barW, barH, 4);
+    ctx.fill();
+    ctx.fillStyle = '#889';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(d.month ? d.month.substring(5) : '', x + barW/2, h - 8);
+    ctx.fillStyle = '#ffaa00';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText(d.revenue, x + barW/2, y - 5);
+  });
+}
+
+function roundRect(ctx,x,y,w,h,r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
 }
 
 // Initialize - check if already logged in

@@ -31,6 +31,12 @@ if (fs.existsSync(PUBLIC_DIR)) {
       res.redirect('/app/admin.html');
     });
   }
+  // Serve buy.html at /buy
+  if (fs.existsSync(path.join(PUBLIC_DIR, 'buy.html'))) {
+    app.get('/buy', (req, res) => {
+      res.sendFile(path.join(PUBLIC_DIR, 'buy.html'));
+    });
+  }
 }
 
 const CONFIG = require('./config');
@@ -459,10 +465,82 @@ app.get('/api/admin/contacts', auth, (req, res) => {
 // ==== Health check (no auth) ====
 app.get('/api/ping', (req, res) => res.json({ pong: true, time: Date.now() }));
 
+// ═══════════════════════════════════════════════
+//          ERROR MONITORING & NOTIFICATIONS
+// ═══════════════════════════════════════════════
+
+const ERROR_LOG_FILE = path.join(__dirname, 'error-monitor.log');
+let errorCount = 0;
+let lastNotifyTime = 0;
+
+function logError(err) {
+  errorCount++;
+  const line = `[${new Date().toISOString()}] ${err.message || err}\n${err.stack || ''}`;
+  try { fs.appendFileSync(ERROR_LOG_FILE, line + '\n'); } catch {}
+  console.error('[MONITOR]', err.message || err);
+}
+
+function sendAdminAlert(msg) {
+  try {
+    const token = CONFIG.bot_token;
+    if (!token) return;
+    const admins = CONFIG.admin_ids || [];
+    if (!admins.length) return;
+    const postData = JSON.stringify({ chat_id: admins[0], text: msg, parse_mode: 'Markdown' });
+    const req = https.request({
+      hostname: 'api.telegram.org', port: 443, method: 'POST',
+      path: `/bot${token}/sendMessage`,
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }
+    });
+    req.write(postData);
+    req.end();
+  } catch {}
+}
+
+process.on('uncaughtException', (err) => {
+  logError(err);
+  const now = Date.now();
+  if (now - lastNotifyTime > 600000) { // max once per 10 min
+    lastNotifyTime = now;
+    sendAdminAlert(`🚨 *خطأ في السيرفر*\n\n\`${(err.message || '').substring(0, 200)}\``);
+  }
+});
+
+process.on('unhandledRejection', (err) => {
+  logError(err);
+});
+
+// Health monitoring endpoint
+app.get('/api/health/errors', auth, (req, res) => {
+  try {
+    const logs = fs.existsSync(ERROR_LOG_FILE) ? fs.readFileSync(ERROR_LOG_FILE, 'utf8').split('\n').filter(Boolean).slice(-50) : [];
+    res.json({ totalErrors: errorCount, recentLogs: logs });
+  } catch (e) { res.json({ totalErrors: errorCount, recentLogs: [] }); }
+});
+
+app.post('/api/health/clear-errors', auth, (req, res) => {
+  try { fs.unlinkSync(ERROR_LOG_FILE); } catch {}
+  errorCount = 0;
+  res.json({ success: true });
+});
+
+// Periodic health check (every 30 min)
+setInterval(() => {
+  try {
+    const dbCheck = db.get().prepare('SELECT COUNT(*) as c FROM users').get();
+    if (!dbCheck) throw new Error('DB not responding');
+  } catch (err) {
+    logError(new Error('Health check failed: ' + err.message));
+    sendAdminAlert(`⚠️ *Health Check فشل*\n\n${err.message.substring(0, 200)}`);
+  }
+}, 1800000);
+
 app.listen(PORT, '0.0.0.0', () => {
   log(`Remote control server running on port ${PORT}`);
   log(`Auth token: ${AUTH_TOKEN.substring(0, 8)}...`);
   // Init files
   if (!fs.existsSync(PENDING_FILE)) fs.writeFileSync(PENDING_FILE, JSON.stringify([], null, 2));
   if (!fs.existsSync(RESULTS_FILE)) fs.writeFileSync(RESULTS_FILE, JSON.stringify([], null, 2));
+  // Notify admin on startup
+  sendAdminAlert(`✅ *السيرفر بدأ*\n🆔 PID: ${process.pid}\n⏰ ${new Date().toLocaleString('ar-EG')}`);
 });
