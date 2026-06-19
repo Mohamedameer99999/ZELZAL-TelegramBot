@@ -154,7 +154,14 @@ def upload_to_drive(timestamp):
     rclone = shutil.which("rclone") or str(Path(__file__).parent / "rclone.exe")
     if not os.path.exists(rclone):
         print("[DRIVE] rclone not found — skipping Drive upload")
-        print("[DRIVE] Run setup-google-drive.bat first to configure")
+        print("[DRIVE] Run setup-all.bat to configure rclone and Google Drive")
+        return False
+
+    # Check if Google Drive config exists
+    config_path = Path.home() / ".config" / "rclone" / "rclone.conf"
+    if not config_path.exists():
+        print("[DRIVE] rclone config not found — skipping Drive upload")
+        print("[DRIVE] Run setup-all.bat to configure Google Drive")
         return False
 
     remote = "ZELZAL_Backup:ZELZAL_Backups"

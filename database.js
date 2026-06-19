@@ -235,7 +235,7 @@ function getActiveLicenseCount() {
 }
 
 function getExpiringLicenses(days = 7) {
-  const future = new Date(Date.now() + days * 86400000).toISOString().split('T')[0];
+  const future = new Date(Date.now() + days * 86400000).toISOString().split('T')[0].replace(/-/g, '');
   return get().prepare("SELECT * FROM licenses WHERE status = 'active' AND expires_at <= ?").all(future);
 }
 
@@ -277,7 +277,7 @@ function cancelSubscription(id) {
 
 function getExpiringSubscriptions(days = 3) {
   const future = new Date(Date.now() + days * 86400000).toISOString();
-  return get().prepare("SELECT * FROM subscriptions WHERE status = 'active' AND current_period_end <= ?").all(future);
+  return get().prepare("SELECT * FROM subscriptions WHERE status = 'active' AND current_period_end IS NOT NULL AND current_period_end <= ?").all(future);
 }
 
 // ─── Payments ───

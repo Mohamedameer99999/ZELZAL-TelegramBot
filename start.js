@@ -6,24 +6,26 @@ const fs = require('fs');
 
 const LOCK_FILE = path.join(__dirname, '.bot.lock');
 
-// Check for existing lock
-if (fs.existsSync(LOCK_FILE)) {
-  const existingPid = fs.readFileSync(LOCK_FILE, 'utf8').trim();
-  try {
-    process.kill(parseInt(existingPid), 0);
-    console.log(`[LOCK] Another bot instance running (PID: ${existingPid}). Exiting.`);
-    process.exit(1);
-  } catch {
-    // Stale lock, remove it
+// Prevent multiple instances with lock file
+const is409Restart = process.env.IS_409_RESTART === '1';
+function acquireLock() {
+  if (fs.existsSync(LOCK_FILE)) {
+    const existingPid = fs.readFileSync(LOCK_FILE, 'utf8').trim();
+    if (existingPid) {
+      try {
+        process.kill(parseInt(existingPid), 0);
+        if (!is409Restart) {
+          console.log(`[LOCK] Another instance (PID: ${existingPid}) running. Killing it...`);
+          process.kill(parseInt(existingPid), 'SIGKILL');
+        }
+      } catch {}
+    }
     fs.unlinkSync(LOCK_FILE);
   }
+  fs.writeFileSync(LOCK_FILE, process.pid.toString());
+  console.log(`[LOCK] Acquired (PID: ${process.pid}${is409Restart ? ', 409 restart' : ''})`);
 }
-
-// Write our PID to lock file
-fs.writeFileSync(LOCK_FILE, process.pid.toString());
-
-const { fork } = require('child_process');
-const path = require('path');
+acquireLock();
 
 const services = [
   { name: 'bot', file: 'bot.js' },

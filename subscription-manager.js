@@ -87,21 +87,24 @@ async function checkExpired() {
   try {
     const now = new Date().toISOString();
 
-    db.get().prepare(`
+    const rows = db.get().prepare(`
       SELECT * FROM subscriptions
       WHERE status = 'active' AND current_period_end <= ?
-    `).all(now).forEach(async (sub) => {
-      const graceEnd = new Date(sub.current_period_end);
+    `).all(now);
+    for (const sub of rows) {
+      const endDate = safeParseDate(sub.current_period_end);
+      if (!endDate) continue;
+      const graceEnd = new Date(endDate.getTime());
       graceEnd.setDate(graceEnd.getDate() + GRACE_DAYS);
 
       if (new Date() < graceEnd) {
-        if (notifiedGrace.has(sub.id)) return;
+        if (notifiedGrace.has(sub.id)) continue;
         notifiedGrace.add(sub.id);
         await notifyGracePeriod(sub, graceEnd);
-        return;
+        continue;
       }
 
-      if (notifiedExpired.has(sub.id)) return;
+      if (notifiedExpired.has(sub.id)) continue;
       notifiedExpired.add(sub.id);
 
       db.updateSubscriptionStatus(sub.id, 'expired');
@@ -115,7 +118,7 @@ async function checkExpired() {
       }
 
       await notifyExpired(sub);
-    });
+    }
   } catch (err) {
     console.error('[Subscription] checkExpired error:', err.message);
   }
@@ -169,9 +172,12 @@ async function notifyExpired(sub) {
 async function autoRenew(sub) {
   if (!sub.auto_renew) return null;
 
+  const endDate = safeParseDate(sub.current_period_end);
+  if (!endDate) return null;
+
   const durationDays = getPlanDurationDays(sub.plan_type);
   const newStart = sub.current_period_end;
-  const newEnd = new Date(newStart);
+  const newEnd = new Date(endDate.getTime());
   newEnd.setDate(newEnd.getDate() + durationDays);
 
   const paymentRef = 'auto_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
@@ -234,7 +240,7 @@ async function processRenewal(subId) {
 
   const durationDays = getPlanDurationDays(sub.plan_type);
   const now = new Date();
-  const currentEnd = new Date(sub.current_period_end);
+  const currentEnd = safeParseDate(sub.current_period_end) || now;
   const newStart = currentEnd > now ? currentEnd : now;
   const newEnd = new Date(newStart);
   newEnd.setDate(newEnd.getDate() + durationDays);

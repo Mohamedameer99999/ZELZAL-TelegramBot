@@ -8,7 +8,6 @@ backups/
 !start-tunnel.bat
 !setup-google-drive.bat
 !deploy.bat
-README.md
 users.json
 pending-commands.json
 command-results.json

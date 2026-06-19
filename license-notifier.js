@@ -7,8 +7,16 @@ const bot = new TelegramBot(config.bot_token, { polling: false });
 const WARNING_HOURS = [72, 24, 1];
 const CHECK_INTERVAL = 60 * 60 * 1000;
 
+function parseExpiry(expiryStr) {
+  if (!expiryStr) return null;
+  const normalized = expiryStr.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3').split('T')[0];
+  const d = new Date(normalized);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 function formatExpiry(expiryStr) {
-  const date = new Date(expiryStr.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
+  const date = parseExpiry(expiryStr);
+  if (!date) return 'غير معروف';
   return date.toLocaleDateString('ar-EG', { 
     weekday: 'long', 
     year: 'numeric', 
@@ -18,7 +26,8 @@ function formatExpiry(expiryStr) {
 }
 
 function getHoursUntil(expiryStr) {
-  const date = new Date(expiryStr.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
+  const date = parseExpiry(expiryStr);
+  if (!date) return Infinity;
   const now = new Date();
   const diffMs = date.getTime() - now.getTime();
   return Math.ceil(diffMs / (1000 * 60 * 60));
